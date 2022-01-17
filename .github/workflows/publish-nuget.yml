@@ -19,4 +19,4 @@ jobs:
         cd src/Medienstudio.Azure.Data.Tables.Extensions
         dotnet pack -c Release -o out
     - name: PushNuget
-      run: dotnet nuget push "**/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{secrets.NUGETKEY}} --skip-duplicate
+      run: dotnet nuget push "**/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{secrets.NUGETSECRET}} --skip-duplicate
