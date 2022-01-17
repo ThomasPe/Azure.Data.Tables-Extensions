@@ -35,7 +35,7 @@ jobs:
         run: |
          npm install -g azurite
          mkdir azurite
-         azurite --silent --location /azurite --debug /azurite/debug.log
+         azurite --silent --location azurite --debug azurite/debug.log
       - name: Build Solution
         run: dotnet build src/${{ env.mainProj }}.sln -c Release
       - name: Test Solution
