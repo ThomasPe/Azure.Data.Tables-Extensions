@@ -14,6 +14,10 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v2
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v1.9.0
+      with:
+        dotnet-version: 6.0.x
     - name: Build & Package
       run: |
         cd src/Medienstudio.Azure.Data.Tables.Extensions
