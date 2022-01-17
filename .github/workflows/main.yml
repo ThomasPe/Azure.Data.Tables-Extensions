@@ -32,10 +32,11 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.5.1
       - name: Install & run Azurite
-        run: |
-         npm install -g azurite
-         mkdir azurite
-         azurite --silent --location azurite --debug azurite/debug.log
+        run: npm install -g azurite
+        # https://github.com/Azure/Azurite/issues/451#issuecomment-639398801
+      - name: Run Azurite in Background
+        shell: bash
+        run: azurite-blob &
       - name: Build Solution
         run: dotnet build src/${{ env.mainProj }}.sln -c Release
       - name: Test Solution
