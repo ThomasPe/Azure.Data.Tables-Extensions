@@ -32,4 +32,4 @@ jobs:
       - name: Build Solution
         run: dotnet build src/${{ env.mainProj }}.sln -c Release
       - name: Test Solution
-        run: dotnet test src/${{ env.mainProj }}/${{ env.testProj }}/${{ env.testProj }}.csproj
+        run: dotnet test src/${{ env.testProj }}/${{ env.testProj }}.csproj
