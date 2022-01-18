@@ -51,7 +51,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <typeparam name="T">Implementation of ITableEntity</typeparam>
         /// <param name="tableClient">The authenticated TableClient</param>
         /// <returns></returns>
-        public static async Task<IList<T>> GetAllEntitiesAsync<T>(this TableClient tableClient) where T : class, ITableEntity, new()
+        public static async Task<List<T>> GetAllEntitiesAsync<T>(this TableClient tableClient) where T : class, ITableEntity, new()
         {
             return await tableClient.QueryAsync<T>(maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
         }
