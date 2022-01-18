@@ -27,7 +27,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
 
                     var actions = new List<TableTransactionAction>();
                     actions.AddRange(batch.Select(e => new TableTransactionAction(tableTransactionActionType, e)));
-                    await tableClient.SubmitTransactionAsync(actions);
+                    await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
                 }
             }
         }
@@ -66,7 +66,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <returns></returns>
         public static async Task AddEntitiesAsync<T>(this TableClient tableClient, IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType = TableTransactionActionType.Add) where T : class, ITableEntity, new()
         {
-            await BatchManipulateEntities(tableClient, entities, tableTransactionActionType);
+            await BatchManipulateEntities(tableClient, entities, tableTransactionActionType).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
             await entities.AsPages().ForEachAwaitAsync(async page => {
                 // Since we don't know how many rows the table has and the results are ordered by PartitonKey+RowKey
                 // we'll delete each page immediately and not cache the whole table in memory
-                await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete);
+                await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
             });
         } 
     }
