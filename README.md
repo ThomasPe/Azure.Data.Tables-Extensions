@@ -2,6 +2,9 @@
 Extensions for the Azure.Data.Tables library to easier access &amp; manipulate data inside Azure Table Storage
 
 ```c#
+using Azure.Data.Tables;
+using Medienstudio.Azure.Data.Tables.Extensions;
+
 TableClient tableClient = new(connectionString);
 
 // Get all rows from the table
