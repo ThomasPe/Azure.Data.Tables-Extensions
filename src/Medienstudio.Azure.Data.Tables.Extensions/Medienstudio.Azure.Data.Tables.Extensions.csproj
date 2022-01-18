@@ -11,11 +11,13 @@
     <PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
     <PackageTags>azure; azure table storage; Azure.Data.Tables</PackageTags>
+    <AssemblyVersion>1.0.1</AssemblyVersion>
+    <FileVersion>1.0.1</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="12.4.0" />
-    <PackageReference Include="System.Linq.Async" Version="5.1.0" />
+    <PackageReference Include="System.Linq.Async" Version="5.0.0" />
   </ItemGroup>
 
 </Project>
