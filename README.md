@@ -1,7 +1,12 @@
 # Azure.Data.Tables Extensions
 Extensions for the Azure.Data.Tables library to easier access &amp; manipulate data inside Azure Table Storage
 
-```c#
+## NuGet
+[![Nuget](https://img.shields.io/nuget/v/Medienstudio.Azure.Data.Tables.Extensions?label=Medienstudio.Azure.Data.Tables.Extensions%20on%20NuGet)](https://www.nuget.org/packages/Medienstudio.Azure.Data.Tables.Extensions/)
+
+## Usage
+
+```csharp
 using Azure.Data.Tables;
 using Medienstudio.Azure.Data.Tables.Extensions;
 
