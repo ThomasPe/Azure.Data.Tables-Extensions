@@ -19,13 +19,14 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
             var groups = entities.GroupBy(x => x.PartitionKey);
             foreach (var group in groups)
             {
+                List<TableTransactionAction> actions;
                 var items = group.AsEnumerable();
                 while (items.Any())
                 {
                     var batch = items.Take(100);
                     items = items.Skip(100);
 
-                    var actions = new List<TableTransactionAction>();
+                    actions = new List<TableTransactionAction>();
                     actions.AddRange(batch.Select(e => new TableTransactionAction(tableTransactionActionType, e)));
                     await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
                 }
