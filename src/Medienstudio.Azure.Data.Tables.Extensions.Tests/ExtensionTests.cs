@@ -2,6 +2,7 @@ using Azure.Data.Tables;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
@@ -14,7 +15,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         private const string AccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
         private const string TableEndpoint = "http://127.0.0.1:10002/devstoreaccount1";
         private const string ConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
-
+        private TableServiceClient? _tableServiceClient;
         private TableClient? _tableClient;
 
         private static string RandomTableName()
@@ -50,7 +51,8 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         [TestInitialize]
         public void Initialize()
         {
-            _tableClient = new(connectionString: ConnectionString, tableName: RandomTableName());
+            _tableServiceClient = new TableServiceClient(ConnectionString);
+            _tableClient = _tableServiceClient.GetTableClient(RandomTableName());
             _tableClient.CreateIfNotExists();
         }
 
@@ -99,6 +101,22 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
             var remaining = await _tableClient.GetAllEntitiesAsync<TableEntity>();
             Assert.AreEqual(0, remaining.Count);
         }
+
+        [TestMethod]
+        public async Task CreateTableIfNotExistsSafeTest()
+        {
+            const string tableName = "testtable";
+
+            var tables = await _tableServiceClient.QueryAsync(x => x.Name == tableName).ToListAsync();
+            Assert.AreEqual(0, tables.Count);
+
+            await _tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
+            await _tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
+
+            tables = await _tableServiceClient.QueryAsync(x => x.Name == tableName).ToListAsync();
+            Assert.AreEqual(1, tables.Count);
+        }
+
 
         [TestCleanup]
         public void Cleanup()

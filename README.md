@@ -5,7 +5,8 @@ Extensions for the Azure.Data.Tables library to easier access &amp; manipulate d
 using Azure.Data.Tables;
 using Medienstudio.Azure.Data.Tables.Extensions;
 
-TableClient tableClient = new(connectionString);
+TableServiceClient tableServiceClient = new(connectionString);
+TableClient tableClient = tableServiceClient.GetTableClient("tablename");
 
 // Get all rows from the table
 List<TableEntity> entities = await tableClient.GetAllEntitiesAsync<TableEntity>();
@@ -29,4 +30,6 @@ await tableClient.AddEntitiesAsync(entities);
 // Delete all rows from the table
 await _tableClient.DeleteAllEntitiesAsync();
 
+// Create a table if it does not exists without throwing a hidden Exception that Application Insights will track
+await tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
 ```

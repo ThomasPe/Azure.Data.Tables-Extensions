@@ -86,5 +86,20 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
                 await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
             });
         } 
+
+        /// <summary>
+        /// Creates a table without throwing a hidden expcetion when it already exists
+        /// </summary>
+        /// <param name="tableServiceClient">Authenticated TableServiceClient</param>
+        /// <param name="table">The table name</param>
+        /// <returns></returns>
+        public static async Task CreateTableIfNotExistsSafeAsync(this TableServiceClient tableServiceClient, string table)
+        {
+            var tables = await tableServiceClient.QueryAsync(x => x.Name == table).ToListAsync().ConfigureAwait(false);
+            if (!tables.Any())
+            {
+                await tableServiceClient.CreateTableAsync(table).ConfigureAwait(false);
+            }
+        }
     }
 }
