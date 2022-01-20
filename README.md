@@ -28,7 +28,7 @@ for (int i = 0; i < 1000; i++)
 await tableClient.AddEntitiesAsync(entities);
 
 // Delete all rows from the table
-await _tableClient.DeleteAllEntitiesAsync();
+await tableClient.DeleteAllEntitiesAsync();
 
 // Create a table if it does not exists without throwing a hidden Exception that Application Insights will track
 await tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
