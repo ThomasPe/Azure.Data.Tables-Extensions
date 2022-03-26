@@ -34,6 +34,18 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         }
 
         /// <summary>
+        /// Returns all rows in a given Partition
+        /// </summary>
+        /// <typeparam name="T">Implementation of ITableEntity</typeparam>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <param name="partitionKey">The PartitionKey</param>
+        /// <returns>List of all entities with specified PartitionKey</returns>
+        public static async Task<IList<T>> GetAllEntitiesByPartitionKeyAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
+        {
+            return await tableClient.QueryAsync<T>(x => x.PartitionKey == partitionKey).ToListAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// Returns all rows for a given RowKey
         /// </summary>
         /// <typeparam name="T">Implementation of ITableEntity</typeparam>

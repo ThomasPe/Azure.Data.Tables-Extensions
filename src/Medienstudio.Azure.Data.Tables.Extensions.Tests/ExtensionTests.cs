@@ -71,9 +71,21 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
             CreateTestData();
 
             var rows = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>("2");
-            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(1, rows.Count);
 
             var rows2 = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>(Guid.NewGuid().ToString());
+            Assert.AreEqual(0, rows2.Count);
+        }
+
+        [TestMethod]
+        public async Task GetEntitiesByPartitionKeyAsyncTest()
+        {
+            CreateTestData();
+
+            var rows = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("2");
+            Assert.AreEqual(2, rows.Count);
+
+            var rows2 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>(Guid.NewGuid().ToString());
             Assert.AreEqual(0, rows2.Count);
         }
 

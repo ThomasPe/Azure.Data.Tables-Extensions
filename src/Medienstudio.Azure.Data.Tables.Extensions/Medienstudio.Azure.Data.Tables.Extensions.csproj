@@ -11,10 +11,11 @@
     <PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
     <PackageTags>azure; azure table storage; Azure.Data.Tables</PackageTags>
-    <AssemblyVersion>1.0.5</AssemblyVersion>
-    <FileVersion>1.0.5</FileVersion>
-    <Version>1.0.5</Version>
+    <AssemblyVersion>1.0.6</AssemblyVersion>
+    <FileVersion>1.0.6</FileVersion>
+    <Version>1.0.6</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Added: Query by Partition Key</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
