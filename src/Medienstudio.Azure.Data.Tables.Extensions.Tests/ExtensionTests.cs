@@ -117,7 +117,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         [TestMethod]
         public async Task CreateTableIfNotExistsSafeAsyncTest()
         {
-            const string tableName = "testtable";
+            const string tableName = "testtableasync";
 
             var tables = await _tableServiceClient.QueryAsync(x => x.Name == tableName).ToListAsync();
             Assert.AreEqual(0, tables.Count);
