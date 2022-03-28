@@ -98,7 +98,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
                 // we'll delete each page immediately and not cache the whole table in memory
                 await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
             });
-        } 
+        }
 
         /// <summary>
         /// Creates a table without throwing a hidden expcetion when it already exists
@@ -112,6 +112,20 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
             if (!tables.Any())
             {
                 await tableServiceClient.CreateTableAsync(table).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Synchronously creates a table without throwing a hidden expcetion when it already exists
+        /// </summary>
+        /// <param name="tableServiceClient">Authenticated TableServiceClient</param>
+        /// <param name="table">The table name</param>
+        public static void CreateTableIfNotExistsSafe(this TableServiceClient tableServiceClient, string table)
+        {
+            var tables = tableServiceClient.Query(x => x.Name == table).ToList();
+            if (!tables.Any())
+            {
+                tableServiceClient.CreateTable(table);
             }
         }
     }

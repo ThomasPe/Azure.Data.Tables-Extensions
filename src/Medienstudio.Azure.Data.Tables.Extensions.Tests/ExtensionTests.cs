@@ -115,7 +115,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         }
 
         [TestMethod]
-        public async Task CreateTableIfNotExistsSafeTest()
+        public async Task CreateTableIfNotExistsSafeAsyncTest()
         {
             const string tableName = "testtable";
 
@@ -126,6 +126,21 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
             await _tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
 
             tables = await _tableServiceClient.QueryAsync(x => x.Name == tableName).ToListAsync();
+            Assert.AreEqual(1, tables.Count);
+        }
+
+        [TestMethod]
+        public void CreateTableIfNotExistsSafeTest()
+        {
+            const string tableName = "testtable";
+
+            var tables = _tableServiceClient.Query(x => x.Name == tableName).ToList();
+            Assert.AreEqual(0, tables.Count);
+
+            _tableServiceClient.CreateTableIfNotExistsSafe(tableName);
+            _tableServiceClient.CreateTableIfNotExistsSafe(tableName);
+
+            tables = _tableServiceClient.Query(x => x.Name == tableName).ToList();
             Assert.AreEqual(1, tables.Count);
         }
 
