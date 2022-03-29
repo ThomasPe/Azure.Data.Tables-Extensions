@@ -1,5 +1,6 @@
 ﻿using Azure;
 using Azure.Data.Tables;
+using Azure.Data.Tables.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,9 +15,11 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <summary>
         /// Groups entities by PartitionKey into batches of max 100 for valid transactions
         /// </summary>
-        private static async Task BatchManipulateEntities<T>(TableClient tableClient, IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType) where T : class, ITableEntity, new()
+        /// <returns>List of Azure Responses for Transactions</returns>
+        public static async Task<List<Response<IReadOnlyList<Response>>>> BatchManipulateEntities<T>(TableClient tableClient, IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType) where T : class, ITableEntity, new()
         {
             var groups = entities.GroupBy(x => x.PartitionKey);
+            var responses = new List<Response<IReadOnlyList<Response>>>();
             foreach (var group in groups)
             {
                 List<TableTransactionAction> actions;
@@ -28,9 +31,11 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
 
                     actions = new List<TableTransactionAction>();
                     actions.AddRange(batch.Select(e => new TableTransactionAction(tableTransactionActionType, e)));
-                    await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
+                    var response = await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
+                    responses.Add(response);
                 }
             }
+            return responses;
         }
 
         /// <summary>
@@ -42,7 +47,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <returns>List of all entities with specified PartitionKey</returns>
         public static async Task<IList<T>> GetAllEntitiesByPartitionKeyAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
         {
-            return await tableClient.QueryAsync<T>(x => x.PartitionKey == partitionKey).ToListAsync().ConfigureAwait(false);
+            return await tableClient.QueryAsync<T>(x => x.PartitionKey == partitionKey, maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -55,7 +60,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <returns>List of all entities in the table with specified RowKey</returns>
         public static async Task<IList<T>> GetAllEntitiesByRowKeyAsync<T>(this TableClient tableClient, string rowKey) where T : class, ITableEntity, new()
         {
-            return await tableClient.QueryAsync<T>(x => x.RowKey == rowKey).ToListAsync().ConfigureAwait(false);
+            return await tableClient.QueryAsync<T>(x => x.RowKey == rowKey, maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -101,18 +106,38 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         }
 
         /// <summary>
+        /// Deletes all rows with the given PartitionKey
+        /// </summary>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <param name="partitionKey">The PartitionKey</param>
+        /// <returns></returns>
+        public static async Task DeleteAllEntitiesByPartitionKeyAsync(this TableClient tableClient, string partitionKey)
+        {
+            // Only the PartitionKey & RowKey fields are required for deletion
+            AsyncPageable<TableEntity> entities = tableClient
+                .QueryAsync<TableEntity>(x => x.PartitionKey == partitionKey, select: new List<string>() { "PartitionKey", "RowKey" }, maxPerPage: 1000);
+
+            await entities.AsPages().ForEachAwaitAsync(async page => {
+                // Since we don't know how many rows the table has and the results are ordered by PartitonKey+RowKey
+                // we'll delete each page immediately and not cache the whole table in memory
+                await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
+            });
+        }
+
+        /// <summary>
         /// Creates a table without throwing a hidden expcetion when it already exists
         /// </summary>
         /// <param name="tableServiceClient">Authenticated TableServiceClient</param>
         /// <param name="table">The table name</param>
-        /// <returns></returns>
-        public static async Task CreateTableIfNotExistsSafeAsync(this TableServiceClient tableServiceClient, string table)
+        /// <returns>Azure Response, null if table already existed</returns>
+        public static async Task<Response<TableItem>> CreateTableIfNotExistsSafeAsync(this TableServiceClient tableServiceClient, string table)
         {
             var tables = await tableServiceClient.QueryAsync(x => x.Name == table).ToListAsync().ConfigureAwait(false);
             if (!tables.Any())
             {
-                await tableServiceClient.CreateTableAsync(table).ConfigureAwait(false);
+                return await tableServiceClient.CreateTableAsync(table).ConfigureAwait(false);
             }
+            return null;
         }
 
         /// <summary>
@@ -120,13 +145,15 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// </summary>
         /// <param name="tableServiceClient">Authenticated TableServiceClient</param>
         /// <param name="table">The table name</param>
-        public static void CreateTableIfNotExistsSafe(this TableServiceClient tableServiceClient, string table)
+        /// <returns>Azure Response, null if table already existed</returns>
+        public static Response<TableItem> CreateTableIfNotExistsSafe(this TableServiceClient tableServiceClient, string table)
         {
             var tables = tableServiceClient.Query(x => x.Name == table).ToList();
             if (!tables.Any())
             {
-                tableServiceClient.CreateTable(table);
+                return tableServiceClient.CreateTable(table);
             }
+            return null;
         }
     }
 }

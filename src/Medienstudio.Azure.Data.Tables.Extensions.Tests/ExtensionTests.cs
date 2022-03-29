@@ -115,6 +115,15 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         }
 
         [TestMethod]
+        public async Task DeleteAllEntitiesByPartitonKeyAsyncTest()
+        {
+            CreateTestData();
+            await _tableClient.DeleteAllEntitiesByPartitionKeyAsync("123");
+            var remaining = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
+            Assert.AreEqual(0, remaining.Count);
+        }
+
+        [TestMethod]
         public async Task CreateTableIfNotExistsSafeAsyncTest()
         {
             const string tableName = "testtableasync";
