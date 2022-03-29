@@ -14,9 +14,14 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         private const string AccountName = "devstoreaccount1";
         private const string AccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
         private const string TableEndpoint = "http://127.0.0.1:10002/devstoreaccount1";
-        private const string ConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
+        //private const string ConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
+        private const string ConnectionString = "DefaultEndpointsProtocol=https;AccountName=hackingtablestorage;AccountKey=HWwxRXH3lAiTimmIAqCMzg/1D+dnxRjFc/R5cXTV16Xtd5qE7N2jSgkXalDtWCLrzMLKAiSnuTlNy2ZosBnh3Q==;EndpointSuffix=core.windows.net";
         private TableServiceClient? _tableServiceClient;
         private TableClient? _tableClient;
+
+        private const string createTableName = "createtesttable";
+        const string createTableNameAsync = "testtableasync";
+
 
         private static string RandomTableName()
         {
@@ -28,20 +33,21 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
             if (_tableClient is null)
                 return;
 
-            List<TableTransactionAction> batch = new();
-
-            for (int i = 0; i < 100; i++)
+            for(int i = 0; i < 30; i++)
             {
-                var e = new TableEntity()
+                List<TableTransactionAction> batch = new();
+                for (int j = 0; j < 100; j++)
                 {
-                    PartitionKey = "123",
-                    RowKey = Guid.NewGuid().ToString()
-                };
-                e.Add("Test", Guid.NewGuid().ToString());
-                batch.Add(new TableTransactionAction(TableTransactionActionType.Add, e));
+                    var e = new TableEntity()
+                    {
+                        PartitionKey = "123",
+                        RowKey = Guid.NewGuid().ToString()
+                    };
+                    e.Add("Test", Guid.NewGuid().ToString());
+                    batch.Add(new TableTransactionAction(TableTransactionActionType.Add, e));
+                }
+                _tableClient.SubmitTransaction(batch);
             }
-
-            _tableClient.SubmitTransaction(batch);
 
             _tableClient.UpsertEntity(new TableEntity() { PartitionKey = "1", RowKey = "2" });
             _tableClient.UpsertEntity(new TableEntity() { PartitionKey = "2", RowKey = "2" });
@@ -62,7 +68,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
             CreateTestData();
 
             var rows = await _tableClient.GetAllEntitiesAsync<TableEntity>();
-            Assert.AreEqual(103, rows.Count);
+            Assert.AreEqual(3003, rows.Count);
         }
 
         [TestMethod]
@@ -126,31 +132,31 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         [TestMethod]
         public async Task CreateTableIfNotExistsSafeAsyncTest()
         {
-            const string tableName = "testtableasync";
-
-            var tables = await _tableServiceClient.QueryAsync(x => x.Name == tableName).ToListAsync();
+            var tables = await _tableServiceClient.QueryAsync(x => x.Name == createTableNameAsync).ToListAsync();
             Assert.AreEqual(0, tables.Count);
 
-            await _tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
-            await _tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
+            await _tableServiceClient.CreateTableIfNotExistsSafeAsync(createTableNameAsync);
+            await _tableServiceClient.CreateTableIfNotExistsSafeAsync(createTableNameAsync);
 
-            tables = await _tableServiceClient.QueryAsync(x => x.Name == tableName).ToListAsync();
+            tables = await _tableServiceClient.QueryAsync(x => x.Name == createTableNameAsync).ToListAsync();
             Assert.AreEqual(1, tables.Count);
+
+            _tableServiceClient.DeleteTable(createTableNameAsync);
         }
 
         [TestMethod]
         public void CreateTableIfNotExistsSafeTest()
         {
-            const string tableName = "testtable";
-
-            var tables = _tableServiceClient.Query(x => x.Name == tableName).ToList();
+            var tables = _tableServiceClient.Query(x => x.Name == createTableName).ToList();
             Assert.AreEqual(0, tables.Count);
 
-            _tableServiceClient.CreateTableIfNotExistsSafe(tableName);
-            _tableServiceClient.CreateTableIfNotExistsSafe(tableName);
+            _tableServiceClient.CreateTableIfNotExistsSafe(createTableName);
+            _tableServiceClient.CreateTableIfNotExistsSafe(createTableName);
 
-            tables = _tableServiceClient.Query(x => x.Name == tableName).ToList();
+            tables = _tableServiceClient.Query(x => x.Name == createTableName).ToList();
             Assert.AreEqual(1, tables.Count);
+
+            _tableServiceClient.DeleteTable(createTableName);
         }
 
 
@@ -158,6 +164,8 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         public void Cleanup()
         {
             _tableClient?.Delete();
+            _tableServiceClient.DeleteTable(createTableName);
+            _tableServiceClient.DeleteTable(createTableNameAsync);
         }
     }
 }
