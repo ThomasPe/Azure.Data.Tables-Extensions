@@ -95,6 +95,25 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests
         }
 
         [TestMethod]
+        public async Task GetFirstEntityAsyncTest()
+        {
+            CreateTestData();
+            var entity = await _tableClient.GetFirstEntityAsync<TableEntity>();
+            Assert.IsNotNull(entity);
+        }
+
+        [TestMethod]
+        public async Task GetFirstEntityByPartitionAsyncTest()
+        {
+            CreateTestData();
+            var entity = await _tableClient.GetFirstEntityAsync<TableEntity>("123");
+            Assert.IsNotNull(entity);
+
+            var entity2 = await _tableClient.GetFirstEntityAsync<TableEntity>(Guid.NewGuid().ToString());
+            Assert.IsNull(entity2);
+        }
+
+        [TestMethod]
         public async Task AddAllEntitiesAsyncTest()
         {
             List<TableEntity> entities = new();

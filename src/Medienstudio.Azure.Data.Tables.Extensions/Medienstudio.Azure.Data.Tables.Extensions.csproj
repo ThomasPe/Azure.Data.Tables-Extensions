@@ -15,7 +15,7 @@
     <FileVersion>1.0.9</FileVersion>
     <Version>1.0.9</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Added: Helpers</PackageReleaseNotes>
+    <PackageReleaseNotes>Added: Helpers, GetFirstAsync</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

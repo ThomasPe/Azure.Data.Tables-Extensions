@@ -75,6 +75,29 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         }
 
         /// <summary>
+        /// Returns first entity in the table
+        /// </summary>
+        /// <typeparam name="T">Implementation of ITableEntity</typeparam>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <returns>First entity in table</returns>
+        public static async Task<T> GetFirstEntityAsync<T>(this TableClient tableClient) where T : class, ITableEntity, new()
+        {
+            return await tableClient.QueryAsync<T>(maxPerPage: 1).FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Returns first entity of the partition
+        /// </summary>
+        /// <typeparam name="T">Implementation of ITableEntity</typeparam>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <param name="partitionKey">PartitionKey</param>
+        /// <returns>First entity in partition</returns>
+        public static async Task<T> GetFirstEntityAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
+        {
+            return await tableClient.QueryAsync<T>(filter: x => x.PartitionKey == partitionKey, maxPerPage: 1).FirstOrDefaultAsync();
+        }
+
+        /// <summary>
         /// Add a list of entites with automatic batching by PartitionKey
         /// </summary>
         /// <typeparam name="T"></typeparam>
