@@ -15,7 +15,7 @@ public class ExtensionTests
     private const string AccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
     private const string TableEndpoint = "http://127.0.0.1:10002/devstoreaccount1";
     private const string ConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
-    private TableServiceClient? _tableServiceClient;
+    private readonly TableServiceClient _tableServiceClient = new(ConnectionString);
     private TableClient? _tableClient;
 
     private const string createTableName = "createtesttable";
@@ -56,7 +56,6 @@ public class ExtensionTests
     [TestInitialize]
     public void Initialize()
     {
-        _tableServiceClient = new TableServiceClient(ConnectionString);
         _tableClient = _tableServiceClient.GetTableClient(RandomTableName());
         _tableClient.CreateIfNotExists();
     }
@@ -176,6 +175,22 @@ public class ExtensionTests
 
         _tableServiceClient.DeleteTable(createTableName);
     }
+
+    [TestMethod]
+    public async Task GetAllEntitiesStartingWithTest()
+    {
+        CreateTestData();
+        var entites123 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "123");
+        Assert.AreEqual(3000, entites123.Count);
+
+        var entites1 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "1");
+        Assert.AreEqual(3001, entites1.Count);
+
+        var entities2 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "2");
+        Assert.AreEqual(1, entities2.Count);
+    }
+
+
 
 
     [TestCleanup]
