@@ -42,5 +42,19 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <param name="key">Key-safe base64 encoded string</param>
         /// <returns>Original Key</returns>
         public static string FromSafeKey(string key) => Encoding.UTF8.GetString(Convert.FromBase64String(key.Replace('.', '/')));
+
+        /// <summary>
+        /// Returns ODATA filter for startsWith
+        /// </summary>
+        /// <param name="column">Azure Table Storage column name</param>
+        /// <param name="prefix">Prefix with which the string should start with</param>
+        /// <returns></returns>
+        public static string StartsWith(string column, string prefix)
+        {
+            char lastChar = prefix[prefix.Length - 1];
+            char nextChar = (char)(lastChar + 1);
+            string prefixNext = prefix.Substring(0, prefix.Length - 1) + nextChar;
+            return $"{column} ge '{prefix}' and {column} lt '{prefixNext}'";
+        }
     }
 }

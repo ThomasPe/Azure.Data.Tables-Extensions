@@ -1,6 +1,8 @@
 ﻿using Azure;
 using Azure.Data.Tables;
 using Azure.Data.Tables.Models;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -48,6 +50,19 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         public static async Task<IList<T>> GetAllEntitiesByPartitionKeyAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
         {
             return await tableClient.QueryAsync<T>(x => x.PartitionKey == partitionKey, maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Returns all entities where values in specified column start with specified prefix
+        /// </summary>
+        /// <typeparam name="T">Implementation of ITableEntity</typeparam>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <param name="column">Column name on which to filter</param>
+        /// <param name="prefix">String with which the column value should start with</param>
+        /// <returns></returns>
+        public static async Task<IList<T>> GetAllEntitiesStartingWithAsync<T>(this TableClient tableClient, string column, string prefix) where T : class, ITableEntity, new()
+        {
+            return await tableClient.QueryAsync<T>(Helpers.StartsWith(column, prefix), maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -121,7 +136,8 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
             AsyncPageable<TableEntity> entities = tableClient
                 .QueryAsync<TableEntity>(select: new List<string>() { "PartitionKey", "RowKey" }, maxPerPage: 1000);
 
-            await entities.AsPages().ForEachAwaitAsync(async page => {
+            await entities.AsPages().ForEachAwaitAsync(async page =>
+            {
                 // Since we don't know how many rows the table has and the results are ordered by PartitonKey+RowKey
                 // we'll delete each page immediately and not cache the whole table in memory
                 await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
@@ -140,7 +156,8 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
             AsyncPageable<TableEntity> entities = tableClient
                 .QueryAsync<TableEntity>(x => x.PartitionKey == partitionKey, select: new List<string>() { "PartitionKey", "RowKey" }, maxPerPage: 1000);
 
-            await entities.AsPages().ForEachAwaitAsync(async page => {
+            await entities.AsPages().ForEachAwaitAsync(async page =>
+            {
                 // Since we don't know how many rows the table has and the results are ordered by PartitonKey+RowKey
                 // we'll delete each page immediately and not cache the whole table in memory
                 await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
@@ -178,5 +195,6 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
             }
             return null;
         }
+        
     }
 }
