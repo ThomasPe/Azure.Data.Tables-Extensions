@@ -52,6 +52,10 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         public static string StartsWith(string column, string prefix)
         {
             char lastChar = prefix[prefix.Length - 1];
+            if (lastChar == char.MaxValue)
+            {
+                return $"{column} ge '{prefix}'";
+            }    
             char nextChar = (char)(lastChar + 1);
             string prefixNext = prefix.Substring(0, prefix.Length - 1) + nextChar;
             return $"{column} ge '{prefix}' and {column} lt '{prefixNext}'";
