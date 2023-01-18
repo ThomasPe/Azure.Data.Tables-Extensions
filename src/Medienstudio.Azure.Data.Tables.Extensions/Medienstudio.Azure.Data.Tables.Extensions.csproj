@@ -13,7 +13,7 @@
     <PackageTags>azure; azure table storage; Azure.Data.Tables</PackageTags>
     <AssemblyVersion>1.0.10</AssemblyVersion>
     <FileVersion>1.0.10</FileVersion>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>Added: Safe Key Helper</PackageReleaseNotes>
   </PropertyGroup>
