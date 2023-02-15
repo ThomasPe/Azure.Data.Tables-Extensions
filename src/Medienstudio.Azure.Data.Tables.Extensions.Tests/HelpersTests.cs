@@ -43,7 +43,26 @@ public class HelpersTests
             // https://stackoverflow.com/questions/13195143/range-of-valid-character-for-a-base-64-encoding
             Assert.IsFalse(safeKey.Any(c => !(char.IsLetterOrDigit(c) || c == '.' || c == '/' || c == '+' || c == '=')));
         }
+    }
 
+    [TestMethod]
+    public void StartsWithTests()
+    {
+        var filter = Helpers.StartsWith("column", "prefix");
+        Assert.AreEqual("column ge 'prefix' and column lt 'prefiy'", filter);
+
+        filter = Helpers.StartsWith("column", "prefix/");
+        Assert.AreEqual("column ge 'prefix/' and column lt 'prefix0'", filter);
+
+        filter = Helpers.StartsWith("column", "prefix0");
+        Assert.AreEqual("column ge 'prefix0' and column lt 'prefix1'", filter);
+
+        filter = Helpers.StartsWith("column", "prefix-");
+        Assert.AreEqual("column ge 'prefix-' and column lt 'prefix.'", filter);
+
+        var prefix = "prefix" + char.MaxValue;
+        filter = Helpers.StartsWith("column", prefix);
+        Assert.AreEqual("column ge '" + prefix + "'", filter);
     }
 
     [TestMethod]
