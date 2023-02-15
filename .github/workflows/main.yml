@@ -16,8 +16,8 @@ on:
 env:
   mainProj: 'Medienstudio.Azure.Data.Tables.Extensions'
   testProj: 'Medienstudio.Azure.Data.Tables.Extensions.Tests'
-  mainCSVProj: 'Medienstudio.Azure.Data.Tables.Extensions.Csv'
-  testCSVProj: 'Medienstudio.Azure.Data.Tables.Extensions.Csv.Tests'
+  mainCSVProj: 'Medienstudio.Azure.Data.Tables.Csv'
+  testCSVProj: 'Medienstudio.Azure.Data.Tables.Csv.Tests'
   buildPlatform: Any CPU
   buildConfiguration: Release
   
