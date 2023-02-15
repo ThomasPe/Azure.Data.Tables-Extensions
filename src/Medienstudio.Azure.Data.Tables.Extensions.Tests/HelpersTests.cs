@@ -1,9 +1,7 @@
-using Azure.Data.Tables;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Medienstudio.Azure.Data.Tables.Extensions.Tests;
 
@@ -63,35 +61,5 @@ public class HelpersTests
         var prefix = "prefix" + char.MaxValue;
         filter = Helpers.StartsWith("column", prefix);
         Assert.AreEqual("column ge '" + prefix + "'", filter);
-    }
-
-    [TestMethod]
-    public async Task CreateTestData()
-    {
-        // create table client 
-        var connectionString = "DefaultEndpointsProtocol=https;AccountName=tablestoragetest;AccountKey=YAYsqjyQGwO2ngoBEhiifgSc0JNgQLToVOidIcELAUaVS1EUN4iIMowIZCCcr2VTQRunB3huRjjKK1sFHrDswg==;EndpointSuffix=core.windows.net";
-        var tableClient = new TableClient(connectionString, "test");
-        await tableClient.CreateIfNotExistsAsync();
-
-        //List<TableEntity> entites = new();
-
-        //for (int j = 0; j < 20; j++)
-        //{
-        //    for (int i = 0; i < 2000; i++)
-        //    {
-        //        var e = new TableEntity()
-        //        {
-        //            PartitionKey = j.ToString(),
-        //            RowKey = Guid.NewGuid().ToString(),
-        //        };
-        //        e["Test" + j] = "test";
-        //        entites.Add(e);
-        //    }
-        //}
-        //await tableClient.AddEntitiesAsync(entites, TableTransactionActionType.UpsertReplace);
-
-        await tableClient.ExportToCsvAsync();
-
-        Assert.IsTrue(true);
     }
 }
