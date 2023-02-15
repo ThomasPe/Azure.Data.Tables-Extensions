@@ -38,7 +38,7 @@ jobs:
         # https://github.com/Azure/Azurite/issues/451#issuecomment-639398801
       - name: Run Azurite in Background
         shell: bash
-        run: azurite-table &
+        run: azurite &
       - name: Build Solution
         run: dotnet build src/${{ env.mainProj }}.sln -c Release
       - name: Test Extensions
