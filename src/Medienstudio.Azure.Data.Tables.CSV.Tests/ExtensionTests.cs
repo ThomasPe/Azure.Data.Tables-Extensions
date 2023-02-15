@@ -12,18 +12,20 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         private const string DefaultEndpointsProtocol = "http";
         private const string AccountName = "devstoreaccount1";
         private const string AccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
+        
         private const string TableEndpoint = "http://127.0.0.1:10002/devstoreaccount1";
-        private const string ConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
+        private const string TableConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
+
+        private const string BlobEndpoint = "http://127.0.0.1:10000/" + AccountName;
+        private const string BlobConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};BlobEndpoint={BlobEndpoint};";
+        
         private TableServiceClient? _tableServiceClient;
         private TableClient? _tableClient;
-
-        private const string createTableName = "createtesttable";
-        const string createTableNameAsync = "testtableasync";
 
         [TestInitialize]
         public void Initialize()
         {
-            _tableServiceClient = new TableServiceClient(ConnectionString);
+            _tableServiceClient = new TableServiceClient(TableConnectionString);
             _tableClient = _tableServiceClient.GetTableClient(RandomTableName());
             _tableClient.CreateIfNotExists();
         }
@@ -100,7 +102,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         public async Task TestExportAzureBlob()
         {
             CreateTestData();
-            var blobServiceClient = new BlobServiceClient(ConnectionString);
+            var blobServiceClient = new BlobServiceClient(BlobConnectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient("testcontainer");
             containerClient.CreateIfNotExists();
             var blobClient = containerClient.GetBlobClient("test.csv");
