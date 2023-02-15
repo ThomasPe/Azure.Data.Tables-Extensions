@@ -10,11 +10,10 @@ namespace Medienstudio.Azure.Data.Tables.CSV
 {
     public static class Extensions
     {
-
         const string TYPE_SUFFIX = "@type";
 
         // extension method for TableClient to export all rows as CSV
-        public static async Task ExportAsCSV(this TableClient tableClient)
+        public static async Task ExportAsCSV(this TableClient tableClient, TextWriter writer)
         {
             List<TableEntity> rows = new(0);
             List<string> systemProperties = new(3) { "PartitionKey", "RowKey", "Timestamp" };
@@ -22,16 +21,19 @@ namespace Medienstudio.Azure.Data.Tables.CSV
             keys.AddRange(systemProperties);
             List<string> ignore = new(1) { "odata.etag" };
 
-            using StreamWriter writer = File.CreateText("test.csv");
             using CsvWriter csv = new(writer, CultureInfo.InvariantCulture);
 
             // preserve milliseconds, truncate trailing zeros
             csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = new string[] { "yyyy-MM-ddTHH:mm:ss.FFFFFFFZ" };
             csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset>().Formats = new string[] { "yyyy-MM-ddTHH:mm:ss.FFFFFFFZ" };
 
+
             // serialize byte arrays as base64 strings
-            //csv.Context.TypeConverterCache.RemoveConverter<byte[]>();
             csv.Context.TypeConverterCache.AddConverter<byte[]>(new BinaryConverter());
+
+            // serilaize booleans lowercase
+            csv.Context.TypeConverterCache.AddConverter<bool>(new BoolConverter());
+
 
             var query = tableClient.QueryAsync<TableEntity>().AsPages();
 
