@@ -7,12 +7,12 @@
     <Authors>Thomas Pentenrieder</Authors>
     <Company>medienstudio.net</Company>
     <Description>A set of helpful extensions to Azure.Data.Tables to facilitate working with Azure Table Storage</Description>
-    <Copyright>2022, Thomas Pentenrieder</Copyright>
+    <Copyright>2023 Thomas Pentenrieder</Copyright>
     <PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
     <PackageTags>azure; azure table storage; Azure.Data.Tables</PackageTags>
-    <AssemblyVersion>1.0.10</AssemblyVersion>
-    <FileVersion>1.0.10</FileVersion>
+    <AssemblyVersion>1.1.1</AssemblyVersion>
+    <FileVersion>1.1.1</FileVersion>
     <Version>1.1.1</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>Added: Safe Key Helper</PackageReleaseNotes>
