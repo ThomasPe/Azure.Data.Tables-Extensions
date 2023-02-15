@@ -1,0 +1,10 @@
+PartitionKey,RowKey,Timestamp,binary,binary@type,bool,bool@type,datetime,datetime@type,datetimeoffset,datetimeoffset@type,double,double@type,guid,guid@type,int,int@type,long,long@type,string,string@type
+partition,binary,2023-02-14T18:04:21.2458108Z,YmluYXJ5,Binary,,,,,,,,,,,,,,,,
+partition,bool,2023-02-14T18:04:21.1948415Z,,,true,Boolean,,,,,,,,,,,,,,
+partition,datetime,2023-02-14T18:04:21.2108312Z,,,,,2020-01-01T01:01:01Z,DateTime,,,,,,,,,,,,
+partition,datetimeoffset,2023-02-14T18:04:21.2278226Z,,,,,,,2020-01-01T01:01:01Z,DateTime,,,,,,,,,,
+partition,double,2023-02-14T18:04:21.1778509Z,,,,,,,,,1.1,Double,,,,,,,,
+partition,guid,2023-02-14T18:04:21.2628024Z,,,,,,,,,,,265356db-d41d-463b-bc10-310bd43a019e,Guid,,,,,,
+partition,int,2023-02-14T18:04:21.1438697 Z,,,,,,,,,,,,,1,Int32,,,,
+partition,long,2023-02-14T18:04:21.1608604Z,,,,,,,,,,,,,,,1,Int64,,
+partition,string,2023-02-14T18:04:21.1238819Z,,,,,,,,,,,,,,,,,string,String

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
     <IsPackable>false</IsPackable>
@@ -20,7 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Medienstudio.Azure.Data.Tables.CSV\Medienstudio.Azure.Data.Tables.CSV.csproj" />
-    <ProjectReference Include="..\Medienstudio.Azure.Data.Tables.Extensions\Medienstudio.Azure.Data.Tables.Extensions.csproj" />
   </ItemGroup>
 
 </Project>
