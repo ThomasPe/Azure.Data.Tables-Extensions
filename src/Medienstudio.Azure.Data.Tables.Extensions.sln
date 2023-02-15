@@ -3,9 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Medienstudio.Azure.Data.Tables.Extensions", "Medienstudio.Azure.Data.Tables.Extensions\Medienstudio.Azure.Data.Tables.Extensions.csproj", "{6F639045-9C6E-4CA4-8C8C-6DA2D6E39B99}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Medienstudio.Azure.Data.Tables.Extensions", "Medienstudio.Azure.Data.Tables.Extensions\Medienstudio.Azure.Data.Tables.Extensions.csproj", "{6F639045-9C6E-4CA4-8C8C-6DA2D6E39B99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Medienstudio.Azure.Data.Tables.Extensions.Tests", "Medienstudio.Azure.Data.Tables.Extensions.Tests\Medienstudio.Azure.Data.Tables.Extensions.Tests.csproj", "{25345E38-FA83-42C1-8121-2D3E470B90DF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Medienstudio.Azure.Data.Tables.Extensions.Tests", "Medienstudio.Azure.Data.Tables.Extensions.Tests\Medienstudio.Azure.Data.Tables.Extensions.Tests.csproj", "{25345E38-FA83-42C1-8121-2D3E470B90DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Medienstudio.Azure.Data.Tables.CSV", "Medienstudio.Azure.Data.Tables.CSV\Medienstudio.Azure.Data.Tables.CSV.csproj", "{BF33A74E-1FC9-4F0E-885D-0D7DB1696A5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Medienstudio.Azure.Data.Tables.CSV.Tests", "Medienstudio.Azure.Data.Tables.CSV.Tests\Medienstudio.Azure.Data.Tables.CSV.Tests.csproj", "{FDA393EC-50C5-47FF-A7F8-6C842813146F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{25345E38-FA83-42C1-8121-2D3E470B90DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{25345E38-FA83-42C1-8121-2D3E470B90DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{25345E38-FA83-42C1-8121-2D3E470B90DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF33A74E-1FC9-4F0E-885D-0D7DB1696A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF33A74E-1FC9-4F0E-885D-0D7DB1696A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF33A74E-1FC9-4F0E-885D-0D7DB1696A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF33A74E-1FC9-4F0E-885D-0D7DB1696A5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDA393EC-50C5-47FF-A7F8-6C842813146F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDA393EC-50C5-47FF-A7F8-6C842813146F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDA393EC-50C5-47FF-A7F8-6C842813146F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDA393EC-50C5-47FF-A7F8-6C842813146F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
