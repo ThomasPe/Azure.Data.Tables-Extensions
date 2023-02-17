@@ -190,9 +190,6 @@ public class ExtensionTests
         Assert.AreEqual(1, entities2.Count);
     }
 
-
-
-
     [TestCleanup]
     public void Cleanup()
     {
