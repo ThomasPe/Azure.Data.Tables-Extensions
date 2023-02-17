@@ -35,7 +35,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         {
             CreateTestData();
             using StreamWriter writer = File.CreateText("test.csv");
-            await _tableClient.ExportAsCSV(writer);
+            await _tableClient.ExportCSV(writer);
             Assert.IsTrue(File.Exists("test.csv"));
 
             var lines = File.ReadAllLines("test.csv");
@@ -110,7 +110,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
             var stream = await blobClient.OpenWriteAsync(true, new BlobOpenWriteOptions() { HttpHeaders = new BlobHttpHeaders { ContentType = "text/csv" } });
             using StreamWriter writer = new(stream);
             
-            await _tableClient.ExportAsCSV(writer);
+            await _tableClient.ExportCSV(writer);
             Assert.IsTrue(await blobClient.ExistsAsync());
         }
 
