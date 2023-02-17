@@ -38,7 +38,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         {
             CreateTestData();
             using StreamWriter writer = File.CreateText("test.csv");
-            await _tableClient.ExportCSV(writer);
+            await _tableClient.ExportCSVAsync(writer);
             Assert.IsTrue(File.Exists("test.csv"));
 
             var lines = File.ReadAllLines("test.csv");
@@ -105,15 +105,14 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         public async Task TestExportAzureBlob()
         {
             CreateTestData();
-            var blobServiceClient = new BlobServiceClient(BlobConnectionString);
-            var containerClient = blobServiceClient.GetBlobContainerClient("testcontainer");
+            BlobContainerClient containerClient = new(BlobConnectionString, "testcontainer");
             containerClient.CreateIfNotExists();
             var blobClient = containerClient.GetBlobClient("test.csv");
 
             var stream = await blobClient.OpenWriteAsync(true, new BlobOpenWriteOptions() { HttpHeaders = new BlobHttpHeaders { ContentType = "text/csv" } });
             using StreamWriter writer = new(stream);
             
-            await _tableClient.ExportCSV(writer);
+            await _tableClient.ExportCSVAsync(writer);
             Assert.IsTrue(await blobClient.ExistsAsync());
         }
 
@@ -121,10 +120,10 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         public async Task TestImportFile()
         {
             using StreamReader reader = new("test.csv");
-            await _tableClient.ImportCSV(reader);
+            await _tableClient.ImportCSVAsync(reader);
 
             using StreamWriter writer = File.CreateText("output.csv");
-            await _tableClient.ExportCSV(writer);
+            await _tableClient.ExportCSVAsync(writer);
 
             using StreamReader reader1 = new("test.csv");
             using var csv1 = new CsvReader(reader1, CultureInfo.InvariantCulture);
@@ -160,7 +159,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         public async Task TestImportBatch()
         {
             using StreamReader reader = new("test-batch.csv");
-            await _tableClient.ImportCSV(reader);
+            await _tableClient.ImportCSVAsync(reader);
             var rows = await _tableClient.GetAllEntitiesAsync<TableEntity>();
             Assert.AreEqual(3003, rows.Count);
         }

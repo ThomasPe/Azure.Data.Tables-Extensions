@@ -22,7 +22,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
         /// <param name="tableClient">The authenticated TableClient</param>
         /// <param name="writer">TextWriter instance that takes the serialized result</param>
         /// <returns>Task<void></void></returns>
-        public static async Task ExportCSV(this TableClient tableClient, TextWriter writer)
+        public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer)
         {
             List<TableEntity> rows = new(0);
             List<string> systemProperties = new(3) { "PartitionKey", "RowKey", "Timestamp" };
@@ -126,7 +126,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
         /// <param name="tableClient">The authenticated TableClient</param>
         /// <param name="reader">TextReader instance providing access to the CSV</param>
         /// <returns></returns>
-        public static async Task ImportCSV(this TableClient tableClient, TextReader reader)
+        public static async Task ImportCSVAsync(this TableClient tableClient, TextReader reader)
         {
             using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
             csv.Read();
