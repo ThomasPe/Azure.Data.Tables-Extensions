@@ -8,21 +8,23 @@
     <Description>An Azure.Data.Tables extension package for exporting Azure Tables as CSV for backup purposes.</Description>
     <Copyright>2023 Thomas Pentenrieder</Copyright>
     <PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
     <PackageTags>azure; azure table storage; Azure.Data.Tables; CSV; Backup; Export;</PackageTags>
     <AssemblyVersion>1.2.0</AssemblyVersion>
     <FileVersion>1.2.0</FileVersion>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="12.8.0" />
     <PackageReference Include="CsvHelper" Version="30.0.1" />
     <PackageReference Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.2.0" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\"/>
-  </ItemGroup>
-
 </Project>
