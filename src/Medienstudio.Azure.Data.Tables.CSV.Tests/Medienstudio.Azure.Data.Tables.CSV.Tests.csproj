@@ -24,4 +24,10 @@
     <ProjectReference Include="..\Medienstudio.Azure.Data.Tables.CSV\Medienstudio.Azure.Data.Tables.CSV.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="test-batch.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

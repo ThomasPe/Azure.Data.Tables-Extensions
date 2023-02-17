@@ -15,7 +15,13 @@ namespace Medienstudio.Azure.Data.Tables.CSV
         const string TYPE_SUFFIX = "@type";
         static readonly string[] SYSTEM_PROPERTIES = { "PartitionKey", "RowKey", "Timestamp" };
 
-        // extension method for TableClient to export all rows as CSV
+
+        /// <summary>
+        /// Returns all rows in the table as CSV to the provided writer
+        /// </summary>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <param name="writer">TextWriter instance that takes the serialized result</param>
+        /// <returns>Task<void></void></returns>
         public static async Task ExportCSV(this TableClient tableClient, TextWriter writer)
         {
             List<TableEntity> rows = new(0);
@@ -113,6 +119,13 @@ namespace Medienstudio.Azure.Data.Tables.CSV
             csv.Flush();
         }
 
+
+        /// <summary>
+        /// Imports a CSV read stream to Table Storage
+        /// </summary>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <param name="reader">TextReader instance providing access to the CSV</param>
+        /// <returns></returns>
         public static async Task ImportCSV(this TableClient tableClient, TextReader reader)
         {
             using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);

@@ -2,6 +2,7 @@ using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using CsvHelper;
+using Medienstudio.Azure.Data.Tables.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Globalization;
 using System.Text;
@@ -155,6 +156,14 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
             }
         }
 
+        [TestMethod]
+        public async Task TestImportBatch()
+        {
+            using StreamReader reader = new("test-batch.csv");
+            await _tableClient.ImportCSV(reader);
+            var rows = await _tableClient.GetAllEntitiesAsync<TableEntity>();
+            Assert.AreEqual(3003, rows.Count);
+        }
 
         private static string RandomTableName()
         {
