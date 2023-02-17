@@ -1,7 +1,9 @@
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using CsvHelper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Globalization;
 using System.Text;
 
 namespace Medienstudio.Azure.Data.Tables.CSV.Tests
@@ -113,6 +115,46 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
             await _tableClient.ExportCSV(writer);
             Assert.IsTrue(await blobClient.ExistsAsync());
         }
+
+        [TestMethod]
+        public async Task TestImportFile()
+        {
+            using StreamReader reader = new("test.csv");
+            await _tableClient.ImportCSV(reader);
+
+            using StreamWriter writer = File.CreateText("output.csv");
+            await _tableClient.ExportCSV(writer);
+
+            using StreamReader reader1 = new("test.csv");
+            using var csv1 = new CsvReader(reader1, CultureInfo.InvariantCulture);
+            csv1.Read();
+            csv1.ReadHeader();
+
+            using StreamReader reader2 = new("output.csv");
+            using var csv2 = new CsvReader(reader2, CultureInfo.InvariantCulture);
+            csv2.Read();
+            csv2.ReadHeader();
+
+            while (csv1.Read())
+            {
+                csv2.Read();
+
+                int i = 0;
+                while(csv1.TryGetField(i, out string? field1))
+                {
+                    string label1 = csv1.HeaderRecord[i];
+                    if(label1 == "Timestamp")
+                    {
+                        i++;
+                        continue;
+                    }
+                    string? field2 = csv2.GetField(i);
+                    Assert.AreEqual(field1, field2);
+                    i++;
+                }
+            }
+        }
+
 
         private static string RandomTableName()
         {

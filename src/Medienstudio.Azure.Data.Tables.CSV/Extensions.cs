@@ -129,6 +129,11 @@ namespace Medienstudio.Azure.Data.Tables.CSV
                 int i = 0;
                 while (csv.TryGetField(i, out string field))
                 {
+                    if (string.IsNullOrEmpty(field))
+                    {
+                        i++;
+                        continue;
+                    }
                     var label = csv.HeaderRecord[i];
                     if (SYSTEM_PROPERTIES.Contains(label))
                     {
@@ -145,12 +150,14 @@ namespace Medienstudio.Azure.Data.Tables.CSV
                                 break;
                         }
                     }
-                    else
+                    else if (!label.EndsWith(TYPE_SUFFIX))
                     {
                         string type = csv.GetField<string>(label + "@type").Split('@')[0];
                         var value = CoerceType(type, field);
                         entity.Add(label, value);
                     }
+
+                    i++;
                 }
                 entities.Add(entity);
 
@@ -158,6 +165,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
                 {
                     await tableClient.AddEntitiesAsync(entities);
                     entities = new();
+                    batchCounter = 0;
                 }
             }
             if (entities.Count > 0)
@@ -171,11 +179,11 @@ namespace Medienstudio.Azure.Data.Tables.CSV
             return type switch
             {
                 "Boolean" => bool.Parse(field),
-                "DateTime" => DateTimeOffset.Parse(field),
-                "Double" => double.Parse(field),
+                "DateTime" => DateTimeOffset.Parse(field, CultureInfo.InvariantCulture),
+                "Double" => double.Parse(field, CultureInfo.InvariantCulture),
                 "Guid" => Guid.Parse(field),
-                "Int32" or "int" => int.Parse(field),
-                "Int64" or "long" => long.Parse(field),
+                "Int32" or "int" => int.Parse(field, CultureInfo.InvariantCulture),
+                "Int64" or "long" => long.Parse(field, CultureInfo.InvariantCulture),
                 "Binary" => Convert.FromBase64String(field),
                 _ => field,
             };
