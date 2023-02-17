@@ -1,9 +1,11 @@
 ﻿using Azure.Data.Tables;
 using CsvHelper;
+using Medienstudio.Azure.Data.Tables.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Medienstudio.Azure.Data.Tables.CSV
@@ -11,9 +13,10 @@ namespace Medienstudio.Azure.Data.Tables.CSV
     public static class Extensions
     {
         const string TYPE_SUFFIX = "@type";
+        static readonly string[] SYSTEM_PROPERTIES = { "PartitionKey", "RowKey", "Timestamp" };
 
         // extension method for TableClient to export all rows as CSV
-        public static async Task ExportAsCSV(this TableClient tableClient, TextWriter writer)
+        public static async Task ExportCSV(this TableClient tableClient, TextWriter writer)
         {
             List<TableEntity> rows = new(0);
             List<string> systemProperties = new(3) { "PartitionKey", "RowKey", "Timestamp" };
@@ -88,14 +91,15 @@ namespace Medienstudio.Azure.Data.Tables.CSV
                     else if (key.EndsWith(TYPE_SUFFIX))
                     {
                         // write the type of the property
-                        if (row.ContainsKey(key.Substring(0, key.Length - TYPE_SUFFIX.Length))){
+                        if (row.ContainsKey(key.Substring(0, key.Length - TYPE_SUFFIX.Length)))
+                        {
                             csv.WriteField(row[key.Substring(0, key.Length - TYPE_SUFFIX.Length)].GetPropertyTypeName());
                         }
                         else
                         {
                             csv.WriteField("");
                         }
-                        
+
                     }
                     else
                     {
@@ -107,6 +111,74 @@ namespace Medienstudio.Azure.Data.Tables.CSV
             }
 
             csv.Flush();
+        }
+
+        public static async Task ImportCSV(this TableClient tableClient, TextReader reader)
+        {
+            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            csv.Read();
+            csv.ReadHeader();
+            List<TableEntity> entities = new(0);
+            int batchCounter = 0;
+
+            while (csv.Read())
+            {
+                batchCounter++;
+                // loop through fields while index is not out of bounds
+                TableEntity entity = new();
+                int i = 0;
+                while (csv.TryGetField(i, out string field))
+                {
+                    var label = csv.HeaderRecord[i];
+                    if (SYSTEM_PROPERTIES.Contains(label))
+                    {
+                        switch (label)
+                        {
+                            case "PartitionKey":
+                                entity.PartitionKey = field;
+                                break;
+                            case "RowKey":
+                                entity.RowKey = field;
+                                break;
+                            case "Timestamp":
+                                entity.Timestamp = DateTimeOffset.Parse(field);
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        string type = csv.GetField<string>(label + "@type").Split('@')[0];
+                        var value = CoerceType(type, field);
+                        entity.Add(label, value);
+                    }
+                }
+                entities.Add(entity);
+
+                if (batchCounter == 100)
+                {
+                    await tableClient.AddEntitiesAsync(entities);
+                    entities = new();
+                }
+            }
+            if (entities.Count > 0)
+            {
+                await tableClient.AddEntitiesAsync(entities);
+            }
+        }
+
+        private static object CoerceType(string type, string field)
+        {
+            return type switch
+            {
+                "Boolean" => bool.Parse(field),
+                "DateTime" => DateTimeOffset.Parse(field),
+                "Double" => double.Parse(field),
+                "Guid" => Guid.Parse(field),
+                "Int32" or "int" => int.Parse(field),
+                "Int64" or "long" => long.Parse(field),
+                "Binary" => Convert.FromBase64String(field),
+                _ => field,
+            };
         }
     }
 }
