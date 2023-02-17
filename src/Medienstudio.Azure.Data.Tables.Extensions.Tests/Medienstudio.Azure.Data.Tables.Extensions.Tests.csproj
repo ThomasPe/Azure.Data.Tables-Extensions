@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Medienstudio.Azure.Data.Tables.CSV\Medienstudio.Azure.Data.Tables.CSV.csproj" />
-    <ProjectReference Include="..\Medienstudio.Azure.Data.Tables.Extensions\Medienstudio.Azure.Data.Tables.Extensions.csproj" />
   </ItemGroup>
 
 </Project>

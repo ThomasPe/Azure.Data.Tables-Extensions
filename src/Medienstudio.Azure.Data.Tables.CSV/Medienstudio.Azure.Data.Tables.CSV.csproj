@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Authors>Thomas Pentenrieder</Authors>
     <Company>medienstudio.net</Company>
@@ -25,7 +25,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="12.8.0" />
     <PackageReference Include="CsvHelper" Version="30.0.1" />
-    <PackageReference Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.1.1" />
+    <PackageReference Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.1.2" />
   </ItemGroup>
 
 </Project>
