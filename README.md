@@ -63,7 +63,6 @@ TableServiceClient tableServiceClient = new(connectionString);
 TableClient tableClient = tableServiceClient.GetTableClient("tablename");
 
 // Export all rows from the table to a CSV file
-CreateTestData();
 using StreamWriter writer = File.CreateText("test.csv");
 await _tableClient.ExportCSVAsync(writer);
 
