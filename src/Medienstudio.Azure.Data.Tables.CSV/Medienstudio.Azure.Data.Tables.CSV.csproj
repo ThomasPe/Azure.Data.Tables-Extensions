@@ -12,6 +12,7 @@
     <PackageTags>azure; azure table storage; Azure.Data.Tables; CSV; Backup; Export;</PackageTags>
     <AssemblyVersion>1.2.1</AssemblyVersion>
     <FileVersion>1.2.1</FileVersion>
+	<Version>1.2.1</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
