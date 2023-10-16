@@ -86,11 +86,14 @@ public class ExtensionTests
     {
         CreateTestData();
 
-        var rows = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("2");
-        Assert.AreEqual(1, rows.Count);
+        var rows1 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
+        Assert.AreEqual(3000, rows1.Count);
 
-        var rows2 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>(Guid.NewGuid().ToString());
-        Assert.AreEqual(0, rows2.Count);
+        var rows2 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("2");
+        Assert.AreEqual(1, rows2.Count);
+
+        var rows3 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>(Guid.NewGuid().ToString());
+        Assert.AreEqual(0, rows3.Count);
     }
 
     [TestMethod]
