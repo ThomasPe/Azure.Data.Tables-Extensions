@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Authors>Thomas Pentenrieder</Authors>
@@ -11,9 +11,9 @@
     <PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
     <PackageTags>azure; azure table storage; Azure.Data.Tables</PackageTags>
-    <AssemblyVersion>1.2.1</AssemblyVersion>
-    <FileVersion>1.2.1</FileVersion>
-    <Version>1.2.1</Version>
+    <AssemblyVersion>1.3.0</AssemblyVersion>
+    <FileVersion>1.3.0</FileVersion>
+    <Version>1.3.0</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>Added: Safe Key Helper</PackageReleaseNotes>
   </PropertyGroup>
@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Data.Tables" Version="12.8.1" />
+    <PackageReference Include="Azure.Data.Tables" Version="12.8.2" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 

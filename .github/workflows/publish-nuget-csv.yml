@@ -17,7 +17,7 @@ jobs:
     - name: Setup .NET Core SDK
       uses: actions/setup-dotnet@v1.9.0
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
     - name: Build & Package
       run: |
         cd src/Medienstudio.Azure.Data.Tables.CSV
