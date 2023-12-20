@@ -26,6 +26,6 @@
   <ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="12.8.2" />
     <PackageReference Include="CsvHelper" Version="30.0.1" />
-    <PackageReference Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.2.0" />
+    <PackageReference Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.3.0" />
   </ItemGroup>
 </Project>
