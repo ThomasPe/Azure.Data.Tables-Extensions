@@ -13,7 +13,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
     public static class Extensions
     {
         const string TYPE_SUFFIX = "@type";
-        static readonly string[] SYSTEM_PROPERTIES = { "PartitionKey", "RowKey", "Timestamp" };
+        static readonly string[] SYSTEM_PROPERTIES = ["PartitionKey", "RowKey", "Timestamp"];
 
 
         /// <summary>
@@ -33,8 +33,8 @@ namespace Medienstudio.Azure.Data.Tables.CSV
             using CsvWriter csv = new(writer, CultureInfo.InvariantCulture);
 
             // preserve milliseconds, truncate trailing zeros
-            csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = new string[] { "yyyy-MM-ddTHH:mm:ss.FFFFFFFZ" };
-            csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset>().Formats = new string[] { "yyyy-MM-ddTHH:mm:ss.FFFFFFFZ" };
+            csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = ["yyyy-MM-ddTHH:mm:ss.FFFFFFFZ"];
+            csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset>().Formats = ["yyyy-MM-ddTHH:mm:ss.FFFFFFFZ"];
 
 
             // serialize byte arrays as base64 strings

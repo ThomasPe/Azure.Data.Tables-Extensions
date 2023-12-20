@@ -4,6 +4,8 @@ using Azure.Storage.Blobs.Models;
 using CsvHelper;
 using Medienstudio.Azure.Data.Tables.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Concurrent;
+using System;
 using System.Globalization;
 using System.Text;
 
@@ -25,6 +27,8 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
         private TableServiceClient? _tableServiceClient;
         private TableClient? _tableClient;
 
+        private const string specialChars = "äöüßÄÖÜ#-.;:_!§$%&/()=?`´*'+~<>|@€{[]}\\^°²³";
+
         [TestInitialize]
         public void Initialize()
         {
@@ -42,24 +46,24 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
             Assert.IsTrue(File.Exists("test.csv"));
 
             var lines = File.ReadAllLines("test.csv");
-            Assert.AreEqual(10, lines.Length);
+            Assert.AreEqual(11, lines.Length);
 
             // header
-            Assert.AreEqual("PartitionKey,RowKey,Timestamp,binary,binary@type,bool,bool@type,datetime,datetime@type,datetimeoffset,datetimeoffset@type,double,double@type,guid,guid@type,int,int@type,long,long@type,string,string@type", lines[0]);
+            Assert.AreEqual("PartitionKey,RowKey,Timestamp,binary,binary@type,bool,bool@type,datetime,datetime@type,datetimeoffset,datetimeoffset@type,double,double@type,guid,guid@type,int,int@type,long,long@type,specialChars,specialChars@type,quotes,quotes@type", lines[0]);
 
             // data
             var dataBinary = lines[1].Split(',');
             Assert.AreEqual("partition", dataBinary[0]);
-            Assert.AreEqual("binary", dataBinary[1]);
+            Assert.AreEqual("01-binary", dataBinary[1]);
             Assert.AreEqual("YmluYXJ5", dataBinary[3]);
             Assert.AreEqual("Binary", dataBinary[4]);
 
             var dataBool = lines[2].Split(',');
             Assert.AreEqual("partition", dataBool[0]);
-            Assert.AreEqual("bool", dataBool[1]);
+            Assert.AreEqual("02-bool", dataBool[1]);
             Assert.AreEqual("true", dataBool[5]);
             Assert.AreEqual("Boolean", dataBool[6]);
-
+            
             var dataDateTime = lines[3].Split(',');
             Assert.AreEqual("partition", dataDateTime[0]);
             Assert.AreEqual("2020-01-01T01:01:01Z", dataDateTime[7]);
@@ -69,36 +73,43 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
             Assert.AreEqual("partition", dataDateTimeOffset[0]);
             Assert.AreEqual("2020-01-01T01:01:01Z", dataDateTimeOffset[9]);
             Assert.AreEqual("DateTime", dataDateTimeOffset[10]);
-
+            
             var dataDouble = lines[5].Split(',');
             Assert.AreEqual("partition", dataDouble[0]);
-            Assert.AreEqual("double", dataDouble[1]);
+            Assert.AreEqual("05-double", dataDouble[1]);
             Assert.AreEqual("1.1", dataDouble[11]);
             Assert.AreEqual("Double", dataDouble[12]);
 
             var dataGuid = lines[6].Split(',');
             Assert.AreEqual("partition", dataGuid[0]);
-            Assert.AreEqual("guid", dataGuid[1]);
+            Assert.AreEqual("06-guid", dataGuid[1]);
             Assert.IsTrue(Guid.TryParse(dataGuid[13], out _));
             Assert.AreEqual("Guid", dataGuid[14]);
-
+            
             var dataInt = lines[7].Split(',');
             Assert.AreEqual("partition", dataInt[0]);
-            Assert.AreEqual("int", dataInt[1]);
+            Assert.AreEqual("07-int", dataInt[1]);
             Assert.AreEqual("1", dataInt[15]);
             Assert.AreEqual("Int32", dataInt[16]);
             
             var dataLong = lines[8].Split(',');
             Assert.AreEqual("partition", dataLong[0]);
-            Assert.AreEqual("long", dataLong[1]);
+            Assert.AreEqual("08-long", dataLong[1]);
             Assert.AreEqual("1", dataLong[17]);
             Assert.AreEqual("Int64", dataLong[18]);
+            
+            var dataSpecialChars = lines[9].Split(',');
+            Assert.AreEqual("partition", dataSpecialChars[0]);
+            Assert.AreEqual("09-specialChars", dataSpecialChars[1]);
+            Assert.AreEqual(specialChars, dataSpecialChars[19]);
+            Assert.AreEqual("String", dataSpecialChars[20]);
 
-            // TODO
-            //var dataString = lines[9].Split(',');
-            //Assert.AreEqual("partition", dataString[0]);
-            //Assert.AreEqual("string,with,commas", dataString[19]);
-            //Assert.AreEqual("String", dataString[20]);
+            var dataQuotes = lines[10].Split(',');
+            Assert.AreEqual("partition", dataQuotes[0]);
+            Assert.AreEqual("10-quotes", dataQuotes[1]);
+            // string is wrapped in quotes and included quotes are escaped with double quotes ""
+            Assert.AreEqual("\"string with \"\"quotes\"\"\"", dataQuotes[21]);
+            Assert.AreEqual("String", dataQuotes[22]);
         }
 
         [TestMethod]
@@ -177,54 +188,71 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests
             // supported property types
             // https://learn.microsoft.com/en-us/rest/api/storageservices/Understanding-the-Table-Service-Data-Model#property-types
 
-            // string
-            var stringEntity = new TableEntity("partition", "string");
-            stringEntity.Add("string", "string,with,commas");
-            _tableClient.AddEntity(stringEntity);
-
-            // int32
-            var intEntity = new TableEntity("partition", "int");
-            intEntity.Add("int", 1);
-            _tableClient.AddEntity(intEntity);
-
-            // int64
-            var longEntity = new TableEntity("partition", "long");
-            longEntity.Add("long", 1L);
-            _tableClient.AddEntity(longEntity);
-
-            // double
-            var doubleEntity = new TableEntity("partition", "double");
-            doubleEntity.Add("double", 1.1);
-            _tableClient.AddEntity(doubleEntity);
+            // binary
+            var binaryEntity = new TableEntity("partition", "01-binary");
+            var binary = Encoding.UTF8.GetBytes("binary");
+            binaryEntity.Add("binary", binary);
+            _tableClient.AddEntity(binaryEntity);
 
             // bool
-            var boolEntity = new TableEntity("partition", "bool");
-            boolEntity.Add("bool", true);
+            var boolEntity = new TableEntity("partition", "02-bool")
+            {
+                { "bool", true }
+            };
             _tableClient.AddEntity(boolEntity);
 
             // datetime
-            var dateTimeEntity = new TableEntity("partition", "datetime");
+            var dateTimeEntity = new TableEntity("partition", "03-datetime");
             var dateTime = new DateTime(2020, 1, 1, 1, 1, 1, DateTimeKind.Utc);
             dateTimeEntity.Add("datetime", dateTime);
             _tableClient.AddEntity(dateTimeEntity);
 
             // datetimeoffset
-            var dateTimeOffsetEntity = new TableEntity("partition", "datetimeoffset");
+            var dateTimeOffsetEntity = new TableEntity("partition", "04-datetimeoffset");
             var dateTimeOffset = new DateTimeOffset(2020, 1, 1, 1, 1, 1, TimeSpan.Zero);
             dateTimeOffsetEntity.Add("datetimeoffset", dateTimeOffset);
             _tableClient.AddEntity(dateTimeOffsetEntity);
 
-            // binary
-            var binaryEntity = new TableEntity("partition", "binary");
-            var binary = Encoding.UTF8.GetBytes("binary");
-            binaryEntity.Add("binary", binary);
-            _tableClient.AddEntity(binaryEntity);
+            // double
+            var doubleEntity = new TableEntity("partition", "05-double")
+            {
+                { "double", 1.1 }
+            };
+            _tableClient.AddEntity(doubleEntity);
 
             // guid
-            var guidEntity = new TableEntity("partition", "guid");
+            var guidEntity = new TableEntity("partition", "06-guid");
             var guid = Guid.NewGuid();
             guidEntity.Add("guid", guid);
             _tableClient.AddEntity(guidEntity);
+
+            // int32
+            var intEntity = new TableEntity("partition", "07-int")
+            {
+                { "int", 1 }
+            };
+            _tableClient.AddEntity(intEntity);
+
+            // int64
+            var longEntity = new TableEntity("partition", "08-long")
+            {
+                { "long", 1L }
+            };
+            _tableClient.AddEntity(longEntity);
+
+            // special chars
+            var specialCharsEntity = new TableEntity("partition", "09-specialChars")
+            {
+                { "specialChars", specialChars }
+            };
+            _tableClient.AddEntity(specialCharsEntity);
+
+            // quotes
+            var quotesEntity = new TableEntity("partition", "10-quotes")
+            {
+                { "quotes",  "string with \"quotes\""}
+            };
+            _tableClient.AddEntity(quotesEntity);
         }
 
         [TestCleanup]
