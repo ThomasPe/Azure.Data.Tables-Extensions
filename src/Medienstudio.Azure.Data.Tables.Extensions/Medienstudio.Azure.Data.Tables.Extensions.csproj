@@ -11,9 +11,9 @@
     <PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
     <PackageTags>azure; azure table storage; Azure.Data.Tables</PackageTags>
-    <AssemblyVersion>1.2.2</AssemblyVersion>
-    <FileVersion>1.2.2</FileVersion>
-    <Version>1.2.2</Version>
+    <AssemblyVersion>1.3.0</AssemblyVersion>
+    <FileVersion>1.3.0</FileVersion>
+    <Version>1.3.0</Version>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>Added: Safe Key Helper</PackageReleaseNotes>
   </PropertyGroup>
