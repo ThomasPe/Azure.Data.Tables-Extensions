@@ -13,7 +13,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
     public static class Extensions
     {
         const string TYPE_SUFFIX = "@type";
-        static readonly string[] SYSTEM_PROPERTIES = ["PartitionKey", "RowKey", "Timestamp"];
+        static readonly string[] SYSTEM_PROPERTIES = { "PartitionKey", "RowKey", "Timestamp" };
 
 
         /// <summary>
