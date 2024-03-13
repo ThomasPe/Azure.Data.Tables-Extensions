@@ -25,14 +25,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v1.9.0
+        uses: actions/setup-dotnet@v4
         with:
-          # Optional SDK version(s) to use. If not provided, will install global.json version when available. Examples: 2.2.104, 3.1, 3.1.x
-          dotnet-version: 8.0.x
+          dotnet-version: 8.x
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.5.1
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
       - name: Install & run Azurite
         run: npm install -g azurite
         # https://github.com/Azure/Azurite/issues/451#issuecomment-639398801
