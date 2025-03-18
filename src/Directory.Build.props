@@ -1,15 +1,26 @@
 <Project>
+	<!-- Head -->
 	<PropertyGroup>
 		<Authors>Thomas Pentenrieder</Authors>
 		<Company>medienstudio.net</Company>
-		<TargetFrameworks>net8.0</TargetFrameworks>
-		<Nullable>enable</Nullable>
-		<ImplicitUsings>enable</ImplicitUsings>
 		<AssemblyVersion>1.4.0</AssemblyVersion>
 		<FileVersion>1.4.0</FileVersion>
 		<Version>1.4.0</Version>
-		<Copyright>2024, Thomas Pentenrieder</Copyright>
+		<Copyright>2025, Thomas Pentenrieder</Copyright>
 		<PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
+	</PropertyGroup>
+
+	<!-- Assembly -->
+	<PropertyGroup>
+		<TargetFrameworks>net8.0</TargetFrameworks>
+	</PropertyGroup>
+
+	<!-- C# -->
+	<PropertyGroup>
+		<LangVersion>12.0</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<WarningsAsErrors>Nullable</WarningsAsErrors>
 	</PropertyGroup>
 </Project>
