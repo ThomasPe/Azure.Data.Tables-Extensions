@@ -1,31 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
-    <Authors>Thomas Pentenrieder</Authors>
-    <Company>medienstudio.net</Company>
-    <Description>An Azure.Data.Tables extension package for exporting Azure Tables as CSV for backup purposes.</Description>
-    <Copyright>2023 Thomas Pentenrieder</Copyright>
-    <PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
-    <PackageTags>azure; azure table storage; Azure.Data.Tables; CSV; Backup; Export;</PackageTags>
-    <AssemblyVersion>1.3.1</AssemblyVersion>
-    <FileVersion>1.3.1</FileVersion>
-	<Version>1.3.1</Version>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
+	<PropertyGroup>
+		<LangVersion>latest</LangVersion>
+		<Description>An Azure.Data.Tables extension package for exporting Azure Tables as CSV for backup purposes.</Description>
+		<Copyright>2023 Thomas Pentenrieder</Copyright>
+		<PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
+		<PackageTags>azure; azure table storage; Azure.Data.Tables; CSV; Backup; Export;</PackageTags>
+		<AssemblyVersion>1.3.1</AssemblyVersion>
+		<FileVersion>1.3.1</FileVersion>
+		<Version>1.3.1</Version>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Azure.Data.Tables" Version="12.10.0" />
-    <PackageReference Include="CsvHelper" Version="33.0.1" />
-    <PackageReference Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.3.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Azure.Data.Tables" />
+		<PackageReference Include="CsvHelper" />
+		<PackageReference Include="Medienstudio.Azure.Data.Tables.Extensions" />
+	</ItemGroup>
 </Project>

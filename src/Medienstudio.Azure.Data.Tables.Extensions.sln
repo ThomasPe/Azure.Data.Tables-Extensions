@@ -11,6 +11,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Medienstudio.Azure.Data.Tab
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Medienstudio.Azure.Data.Tables.CSV.Tests", "Medienstudio.Azure.Data.Tables.CSV.Tests\Medienstudio.Azure.Data.Tables.CSV.Tests.csproj", "{FDA393EC-50C5-47FF-A7F8-6C842813146F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{037B4AF7-B9BE-4190-BE41-762DC72E382A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{900BFBA7-3E21-40B2-828F-49AF79295A8E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +46,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6F639045-9C6E-4CA4-8C8C-6DA2D6E39B99} = {900BFBA7-3E21-40B2-828F-49AF79295A8E}
+		{25345E38-FA83-42C1-8121-2D3E470B90DF} = {037B4AF7-B9BE-4190-BE41-762DC72E382A}
+		{BF33A74E-1FC9-4F0E-885D-0D7DB1696A5D} = {900BFBA7-3E21-40B2-828F-49AF79295A8E}
+		{FDA393EC-50C5-47FF-A7F8-6C842813146F} = {037B4AF7-B9BE-4190-BE41-762DC72E382A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A3B5519D-1388-4635-B984-0825E7146CAE}

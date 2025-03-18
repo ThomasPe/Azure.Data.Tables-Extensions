@@ -1,15 +1,17 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.TypeConversion;
-using System;
 
-namespace Medienstudio.Azure.Data.Tables.CSV
+namespace Medienstudio.Azure.Data.Tables.CSV;
+
+internal class BinaryConverter : ByteArrayConverter
 {
-    internal class BinaryConverter : ByteArrayConverter
+    public override string ConvertToString(object? value, IWriterRow row, MemberMapData memberMapData)
     {
-        public override string ConvertToString(object value, IWriterRow row, MemberMapData memberMapData)
+        if (value is byte[] byteArray)
         {
-            return Convert.ToBase64String(value as byte[]);
+            return Convert.ToBase64String(byteArray);
         }
+        return string.Empty;
     }
 }
