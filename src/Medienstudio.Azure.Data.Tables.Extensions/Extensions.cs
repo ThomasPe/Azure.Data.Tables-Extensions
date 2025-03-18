@@ -16,7 +16,7 @@ public static class Extensions
     public static async Task<List<Response<IReadOnlyList<Response>>>> BatchManipulateEntities<T>(TableClient tableClient, IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType) where T : class, ITableEntity, new()
     {
         IEnumerable<IGrouping<string, T>> groups = entities.GroupBy(x => x.PartitionKey);
-        List<Response<IReadOnlyList<Response>>> responses = new List<Response<IReadOnlyList<Response>>>();
+        List<Response<IReadOnlyList<Response>>> responses = [];
         foreach (IGrouping<string, T> group in groups)
         {
             List<TableTransactionAction> actions;
@@ -26,8 +26,7 @@ public static class Extensions
                 IEnumerable<T> batch = items.Take(100);
                 items = items.Skip(100);
 
-                actions = new List<TableTransactionAction>();
-                actions.AddRange(batch.Select(e => new TableTransactionAction(tableTransactionActionType, e)));
+                actions = [.. batch.Select(e => new TableTransactionAction(tableTransactionActionType, e))];
                 Response<IReadOnlyList<Response>> response = await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
                 responses.Add(response);
             }

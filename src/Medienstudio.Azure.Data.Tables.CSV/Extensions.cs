@@ -8,7 +8,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV;
 public static class Extensions
 {
     const string TYPE_SUFFIX = "@type";
-    static readonly string[] SYSTEM_PROPERTIES = { "PartitionKey", "RowKey", "Timestamp" };
+    static readonly string[] SYSTEM_PROPERTIES = ["PartitionKey", "RowKey", "Timestamp"];
 
 
     /// <summary>
@@ -19,11 +19,11 @@ public static class Extensions
     /// <returns>Task<void></void></returns>
     public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer)
     {
-        List<TableEntity> rows = new(0);
-        List<string> systemProperties = new(3) { "PartitionKey", "RowKey", "Timestamp" };
-        List<string> keys = new(3);
+        List<TableEntity> rows = [];
+        List<string> systemProperties = ["PartitionKey", "RowKey", "Timestamp"];
+        List<string> keys = [];
         keys.AddRange(systemProperties);
-        List<string> ignore = new(1) { "odata.etag" };
+        List<string> ignore = ["odata.etag"];
 
         using CsvWriter csv = new(writer, CultureInfo.InvariantCulture);
 
@@ -92,9 +92,9 @@ public static class Extensions
                 else if (key.EndsWith(TYPE_SUFFIX))
                 {
                     // write the type of the property
-                    if (row.ContainsKey(key.Substring(0, key.Length - TYPE_SUFFIX.Length)))
+                    if (row.ContainsKey(key[..^TYPE_SUFFIX.Length]))
                     {
-                        csv.WriteField(row[key.Substring(0, key.Length - TYPE_SUFFIX.Length)].GetPropertyTypeName());
+                        csv.WriteField(row[key[..^TYPE_SUFFIX.Length]].GetPropertyTypeName());
                     }
                     else
                     {
@@ -123,17 +123,17 @@ public static class Extensions
     /// <returns></returns>
     public static async Task ImportCSVAsync(this TableClient tableClient, TextReader reader)
     {
-        using CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        using CsvReader csv = new(reader, CultureInfo.InvariantCulture);
         csv.Read();
         csv.ReadHeader();
-        List<TableEntity> entities = new(0);
+        List<TableEntity> entities = [];
         int batchCounter = 0;
 
         while (csv.Read())
         {
             batchCounter++;
             // loop through fields while index is not out of bounds
-            TableEntity entity = new();
+            TableEntity entity = [];
             int i = 0;
             while (csv.TryGetField(i, out string? field))
             {
@@ -177,7 +177,7 @@ public static class Extensions
             if (batchCounter == 100)
             {
                 await tableClient.AddEntitiesAsync(entities);
-                entities = new();
+                entities = [];
                 batchCounter = 0;
             }
         }

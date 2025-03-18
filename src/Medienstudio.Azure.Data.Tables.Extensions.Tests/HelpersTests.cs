@@ -21,15 +21,15 @@ public class HelpersTests
     [TestMethod]
     public void SafeKeyTests()
     {
-        List<string> keys = new()
-        {
+        List<string> keys =
+        [
             "/path/to/file.md",
             @"/\#?",
             "\n",
             " ",
             // should create a key including forward slash
             "subjects?_d=1"
-        };
+        ];
 
         foreach (string key in keys)
         {

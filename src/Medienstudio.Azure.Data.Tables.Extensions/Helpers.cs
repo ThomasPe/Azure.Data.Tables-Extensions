@@ -57,7 +57,7 @@ public static class Helpers
             return $"{column} ge '{prefix}'";
         }    
         char nextChar = (char)(lastChar + 1);
-        string prefixNext = prefix.Substring(0, prefix.Length - 1) + nextChar;
+        string prefixNext = prefix[..^1] + nextChar;
         return $"{column} ge '{prefix}' and {column} lt '{prefixNext}'";
     }
 }

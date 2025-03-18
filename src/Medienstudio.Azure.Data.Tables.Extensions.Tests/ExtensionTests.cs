@@ -34,7 +34,7 @@ public class ExtensionTests
 
         for(int i = 0; i < 30; i++)
         {
-            List<TableTransactionAction> batch = new();
+            List<TableTransactionAction> batch = [];
             for (int j = 0; j < 100; j++)
             {
                 TableEntity e = new TableEntity()
@@ -118,7 +118,7 @@ public class ExtensionTests
     [TestMethod]
     public async Task AddAllEntitiesAsyncTest()
     {
-        List<TableEntity> entities = new();
+        List<TableEntity> entities = [];
         for (int i = 0; i < 1000; i++)
         {
             TableEntity e = new TableEntity()
