@@ -37,7 +37,7 @@ public class ExtensionTests
             List<TableTransactionAction> batch = new();
             for (int j = 0; j < 100; j++)
             {
-                var e = new TableEntity()
+                TableEntity e = new TableEntity()
                 {
                     PartitionKey = "123",
                     RowKey = Guid.NewGuid().ToString()
@@ -65,7 +65,7 @@ public class ExtensionTests
     {
         CreateTestData();
 
-        var rows = await _tableClient.GetAllEntitiesAsync<TableEntity>();
+        List<TableEntity> rows = await _tableClient.GetAllEntitiesAsync<TableEntity>();
         Assert.AreEqual(3003, rows.Count);
     }
 
@@ -74,10 +74,10 @@ public class ExtensionTests
     {
         CreateTestData();
 
-        var rows = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>("2");
+        IList<TableEntity> rows = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>("2");
         Assert.AreEqual(2, rows.Count);
 
-        var rows2 = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>(Guid.NewGuid().ToString());
+        IList<TableEntity> rows2 = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>(Guid.NewGuid().ToString());
         Assert.AreEqual(0, rows2.Count);
     }
 
@@ -86,13 +86,13 @@ public class ExtensionTests
     {
         CreateTestData();
 
-        var rows1 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
+        IList<TableEntity> rows1 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
         Assert.AreEqual(3000, rows1.Count);
 
-        var rows2 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("2");
+        IList<TableEntity> rows2 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("2");
         Assert.AreEqual(1, rows2.Count);
 
-        var rows3 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>(Guid.NewGuid().ToString());
+        IList<TableEntity> rows3 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>(Guid.NewGuid().ToString());
         Assert.AreEqual(0, rows3.Count);
     }
 
@@ -100,7 +100,7 @@ public class ExtensionTests
     public async Task GetFirstEntityAsyncTest()
     {
         CreateTestData();
-        var entity = await _tableClient.GetFirstEntityAsync<TableEntity>();
+        TableEntity entity = await _tableClient.GetFirstEntityAsync<TableEntity>();
         Assert.IsNotNull(entity);
     }
 
@@ -108,10 +108,10 @@ public class ExtensionTests
     public async Task GetFirstEntityByPartitionAsyncTest()
     {
         CreateTestData();
-        var entity = await _tableClient.GetFirstEntityAsync<TableEntity>("123");
+        TableEntity entity = await _tableClient.GetFirstEntityAsync<TableEntity>("123");
         Assert.IsNotNull(entity);
 
-        var entity2 = await _tableClient.GetFirstEntityAsync<TableEntity>(Guid.NewGuid().ToString());
+        TableEntity entity2 = await _tableClient.GetFirstEntityAsync<TableEntity>(Guid.NewGuid().ToString());
         Assert.IsNull(entity2);
     }
 
@@ -121,7 +121,7 @@ public class ExtensionTests
         List<TableEntity> entities = new();
         for (int i = 0; i < 1000; i++)
         {
-            var e = new TableEntity()
+            TableEntity e = new TableEntity()
             {
                 PartitionKey = (i % 20).ToString(),
                 RowKey = Guid.NewGuid().ToString()
@@ -136,7 +136,7 @@ public class ExtensionTests
     {
         CreateTestData();
         await _tableClient.DeleteAllEntitiesAsync();
-        var remaining = await _tableClient.GetAllEntitiesAsync<TableEntity>();
+        List<TableEntity> remaining = await _tableClient.GetAllEntitiesAsync<TableEntity>();
         Assert.AreEqual(0, remaining.Count);
     }
 
@@ -145,14 +145,14 @@ public class ExtensionTests
     {
         CreateTestData();
         await _tableClient.DeleteAllEntitiesByPartitionKeyAsync("123");
-        var remaining = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
+        IList<TableEntity> remaining = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
         Assert.AreEqual(0, remaining.Count);
     }
 
     [TestMethod]
     public async Task CreateTableIfNotExistsSafeAsyncTest()
     {
-        var tables = await _tableServiceClient.QueryAsync(x => x.Name == createTableNameAsync).ToListAsync();
+        List<global::Azure.Data.Tables.Models.TableItem> tables = await _tableServiceClient.QueryAsync(x => x.Name == createTableNameAsync).ToListAsync();
         Assert.AreEqual(0, tables.Count);
 
         await _tableServiceClient.CreateTableIfNotExistsSafeAsync(createTableNameAsync);
@@ -167,7 +167,7 @@ public class ExtensionTests
     [TestMethod]
     public void CreateTableIfNotExistsSafeTest()
     {
-        var tables = _tableServiceClient.Query(x => x.Name == createTableName).ToList();
+        List<global::Azure.Data.Tables.Models.TableItem> tables = _tableServiceClient.Query(x => x.Name == createTableName).ToList();
         Assert.AreEqual(0, tables.Count);
 
         _tableServiceClient.CreateTableIfNotExistsSafe(createTableName);
@@ -183,13 +183,13 @@ public class ExtensionTests
     public async Task GetAllEntitiesStartingWithTest()
     {
         CreateTestData();
-        var entites123 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "123");
+        IList<TableEntity> entites123 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "123");
         Assert.AreEqual(3000, entites123.Count);
 
-        var entites1 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "1");
+        IList<TableEntity> entites1 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "1");
         Assert.AreEqual(3001, entites1.Count);
 
-        var entities2 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "2");
+        IList<TableEntity> entities2 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "2");
         Assert.AreEqual(1, entities2.Count);
     }
 

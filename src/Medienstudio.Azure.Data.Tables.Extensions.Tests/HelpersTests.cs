@@ -11,10 +11,10 @@ public class HelpersTests
     [TestMethod]
     public void TicksKeyTests()
     {
-        var ticksKey = Helpers.TicksKey();
-        var convertedBack = Helpers.TicksKeyToDateTimeOffset(ticksKey);
+        string ticksKey = Helpers.TicksKey();
+        DateTimeOffset convertedBack = Helpers.TicksKeyToDateTimeOffset(ticksKey);
 
-        var diff = DateTimeOffset.Now - convertedBack;
+        TimeSpan diff = DateTimeOffset.Now - convertedBack;
         Assert.IsTrue(diff.TotalSeconds < 1);
     }
 
@@ -31,10 +31,10 @@ public class HelpersTests
             "subjects?_d=1"
         };
 
-        foreach (var key in keys)
+        foreach (string key in keys)
         {
-            var safeKey = Helpers.ToSafeKey(key);
-            var convertedBack = Helpers.FromSafeKey(safeKey);
+            string safeKey = Helpers.ToSafeKey(key);
+            string convertedBack = Helpers.FromSafeKey(safeKey);
 
             Assert.AreEqual(key, convertedBack);
             Assert.IsFalse(string.IsNullOrWhiteSpace(safeKey));
@@ -46,7 +46,7 @@ public class HelpersTests
     [TestMethod]
     public void StartsWithTests()
     {
-        var filter = Helpers.StartsWith("column", "prefix");
+        string filter = Helpers.StartsWith("column", "prefix");
         Assert.AreEqual("column ge 'prefix' and column lt 'prefiy'", filter);
 
         filter = Helpers.StartsWith("column", "prefix/");
@@ -58,7 +58,7 @@ public class HelpersTests
         filter = Helpers.StartsWith("column", "prefix-");
         Assert.AreEqual("column ge 'prefix-' and column lt 'prefix.'", filter);
 
-        var prefix = "prefix" + char.MaxValue;
+        string prefix = "prefix" + char.MaxValue;
         filter = Helpers.StartsWith("column", prefix);
         Assert.AreEqual("column ge '" + prefix + "'", filter);
     }

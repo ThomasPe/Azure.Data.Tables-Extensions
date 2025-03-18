@@ -44,19 +44,19 @@ namespace Medienstudio.Azure.Data.Tables.CSV
             csv.Context.TypeConverterCache.AddConverter<bool>(new BoolConverter());
 
 
-            var query = tableClient.QueryAsync<TableEntity>().AsPages();
+            IAsyncEnumerable<global::Azure.Page<TableEntity>> query = tableClient.QueryAsync<TableEntity>().AsPages();
 
             // loop through all result pages
-            await foreach (var page in query)
+            await foreach (global::Azure.Page<TableEntity> page in query)
             {
                 // loop through all rows in the page
-                foreach (var entity in page.Values)
+                foreach (TableEntity entity in page.Values)
                 {
                     // cache all rows
                     rows.Add(entity);
 
                     // prepare the list of keys for csv header
-                    foreach (var property in entity)
+                    foreach (KeyValuePair<string, object> property in entity)
                     {
                         // skip properties that should be ignored for the export like odata.etag
                         if (ignore.Contains(property.Key))
@@ -78,18 +78,18 @@ namespace Medienstudio.Azure.Data.Tables.CSV
             }
 
             // create the csv header
-            foreach (var key in keys)
+            foreach (string key in keys)
             {
                 csv.WriteField(key);
             }
             csv.NextRecord();
 
             // create the csv rows
-            foreach (var row in rows)
+            foreach (TableEntity row in rows)
             {
-                foreach (var key in keys)
+                foreach (string key in keys)
                 {
-                    if (row.TryGetValue(key, out var value))
+                    if (row.TryGetValue(key, out object value))
                     {
                         // write the value of the property
                         csv.WriteField(value);
@@ -128,7 +128,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
         /// <returns></returns>
         public static async Task ImportCSVAsync(this TableClient tableClient, TextReader reader)
         {
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            using CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture);
             csv.Read();
             csv.ReadHeader();
             List<TableEntity> entities = new(0);
@@ -147,7 +147,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
                         i++;
                         continue;
                     }
-                    var label = csv.HeaderRecord[i];
+                    string label = csv.HeaderRecord[i];
                     if (SYSTEM_PROPERTIES.Contains(label))
                     {
                         switch (label)
@@ -166,7 +166,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV
                     else if (!label.EndsWith(TYPE_SUFFIX))
                     {
                         string type = csv.GetField<string>(label + "@type").Split('@')[0];
-                        var value = CoerceType(type, field);
+                        object value = CoerceType(type, field);
                         entity.Add(label, value);
                     }
 

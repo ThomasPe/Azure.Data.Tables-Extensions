@@ -1,7 +1,6 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.TypeConversion;
-using System;
 
 namespace Medienstudio.Azure.Data.Tables.CSV
 {

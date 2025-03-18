@@ -18,20 +18,20 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <returns>List of Azure Responses for Transactions</returns>
         public static async Task<List<Response<IReadOnlyList<Response>>>> BatchManipulateEntities<T>(TableClient tableClient, IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType) where T : class, ITableEntity, new()
         {
-            var groups = entities.GroupBy(x => x.PartitionKey);
-            var responses = new List<Response<IReadOnlyList<Response>>>();
-            foreach (var group in groups)
+            IEnumerable<IGrouping<string, T>> groups = entities.GroupBy(x => x.PartitionKey);
+            List<Response<IReadOnlyList<Response>>> responses = new List<Response<IReadOnlyList<Response>>>();
+            foreach (IGrouping<string, T> group in groups)
             {
                 List<TableTransactionAction> actions;
-                var items = group.AsEnumerable();
+                IEnumerable<T> items = group.AsEnumerable();
                 while (items.Any())
                 {
-                    var batch = items.Take(100);
+                    IEnumerable<T> batch = items.Take(100);
                     items = items.Skip(100);
 
                     actions = new List<TableTransactionAction>();
                     actions.AddRange(batch.Select(e => new TableTransactionAction(tableTransactionActionType, e)));
-                    var response = await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
+                    Response<IReadOnlyList<Response>> response = await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
                     responses.Add(response);
                 }
             }
@@ -170,7 +170,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <returns>Azure Response, null if table already existed</returns>
         public static async Task<Response<TableItem>> CreateTableIfNotExistsSafeAsync(this TableServiceClient tableServiceClient, string table)
         {
-            var tables = await tableServiceClient.QueryAsync(x => x.Name == table).ToListAsync().ConfigureAwait(false);
+            List<TableItem> tables = await tableServiceClient.QueryAsync(x => x.Name == table).ToListAsync().ConfigureAwait(false);
             if (!tables.Any())
             {
                 return await tableServiceClient.CreateTableAsync(table).ConfigureAwait(false);
@@ -186,13 +186,29 @@ namespace Medienstudio.Azure.Data.Tables.Extensions
         /// <returns>Azure Response, null if table already existed</returns>
         public static Response<TableItem> CreateTableIfNotExistsSafe(this TableServiceClient tableServiceClient, string table)
         {
-            var tables = tableServiceClient.Query(x => x.Name == table).ToList();
+            List<TableItem> tables = tableServiceClient.Query(x => x.Name == table).ToList();
             if (!tables.Any())
             {
                 return tableServiceClient.CreateTable(table);
             }
             return null;
         }
-        
+
+
+        /// <summary>
+        /// Counts all rows in the table
+        /// </summary>
+        /// <param name="tableClient">The authenticated TableClient</param>
+        /// <returns>The total number of rows in the table</returns>
+        public static async Task<int> CountAllRowsAsync(this TableClient tableClient)
+        {
+            int count = 0;
+            await foreach (var page in tableClient.QueryAsync<TableEntity>(maxPerPage: 1000).AsPages())
+            {
+                count += page.Values.Count;
+            }
+            return count;
+        }
+
     }
 }
