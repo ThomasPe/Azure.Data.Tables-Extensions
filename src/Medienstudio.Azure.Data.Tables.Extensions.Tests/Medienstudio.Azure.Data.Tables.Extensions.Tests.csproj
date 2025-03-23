@@ -4,15 +4,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Medienstudio.Azure.Data.Tables.CSV\Medienstudio.Azure.Data.Tables.CSV.csproj" />
+		<ProjectReference Include="..\Medienstudio.Azure.Data.Tables.Extensions\Medienstudio.Azure.Data.Tables.Extensions.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="MSTest.TestAdapter" />
 		<PackageReference Include="MSTest.TestFramework" />
 		<PackageReference Include="coverlet.collector" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\Medienstudio.Azure.Data.Tables.CSV\Medienstudio.Azure.Data.Tables.CSV.csproj" />
-	</ItemGroup>
-
 </Project>
