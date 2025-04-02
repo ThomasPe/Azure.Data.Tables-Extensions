@@ -49,6 +49,11 @@ await _tableClient.DeleteAllEntitiesByPartitionKeyAsync("123");
 
 // Create a table if it does not exists without throwing a hidden Exception that Application Insights will track
 await tableServiceClient.CreateTableIfNotExistsSafeAsync(tableName);
+
+// Count all rows in the table
+int count = await _tableClient.CountEntitiesAsync();
+// Count all rows by PartitionKey
+int count2 = await _tableClient.CountEntitiesAsync(partitionKey: "MyPartitionKey");
 ```
 
 ## CSV Export / Import
