@@ -1,16 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Description>A set of helpful extensions to Azure.Data.Tables to facilitate working with Azure Table Storage</Description>
     <PackageTags>azure; azure table storage; Azure.Data.Tables</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Added: Safe Key Helper</PackageReleaseNotes>
   </PropertyGroup>
 	
-	
-
   <ItemGroup>
     <None Include="..\..\README.md">
       <Pack>True</Pack>
