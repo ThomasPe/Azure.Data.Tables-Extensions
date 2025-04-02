@@ -135,12 +135,12 @@ public class ExtensionTests
         await _tableClient.ExportCSVAsync(writer);
 
         using StreamReader reader1 = new("test.csv");
-        using CsvReader csv1 = new CsvReader(reader1, CultureInfo.InvariantCulture);
+        using CsvReader csv1 = new(reader1, CultureInfo.InvariantCulture);
         csv1.Read();
         csv1.ReadHeader();
 
         using StreamReader reader2 = new("output.csv");
-        using CsvReader csv2 = new CsvReader(reader2, CultureInfo.InvariantCulture);
+        using CsvReader csv2 = new(reader2, CultureInfo.InvariantCulture);
         csv2.Read();
         csv2.ReadHeader();
 
@@ -187,66 +187,66 @@ public class ExtensionTests
         // https://learn.microsoft.com/en-us/rest/api/storageservices/Understanding-the-Table-Service-Data-Model#property-types
 
         // binary
-        TableEntity binaryEntity = new TableEntity("partition", "01-binary");
+        TableEntity binaryEntity = new("partition", "01-binary");
         byte[] binary = Encoding.UTF8.GetBytes("binary");
         binaryEntity.Add("binary", binary);
         _tableClient.AddEntity(binaryEntity);
 
         // bool
-        TableEntity boolEntity = new TableEntity("partition", "02-bool")
+        TableEntity boolEntity = new("partition", "02-bool")
         {
             { "bool", true }
         };
         _tableClient.AddEntity(boolEntity);
 
         // datetime
-        TableEntity dateTimeEntity = new TableEntity("partition", "03-datetime");
-        DateTime dateTime = new DateTime(2020, 1, 1, 1, 1, 1, DateTimeKind.Utc);
+        TableEntity dateTimeEntity = new("partition", "03-datetime");
+        DateTime dateTime = new(2020, 1, 1, 1, 1, 1, DateTimeKind.Utc);
         dateTimeEntity.Add("datetime", dateTime);
         _tableClient.AddEntity(dateTimeEntity);
 
         // datetimeoffset
-        TableEntity dateTimeOffsetEntity = new TableEntity("partition", "04-datetimeoffset");
-        DateTimeOffset dateTimeOffset = new DateTimeOffset(2020, 1, 1, 1, 1, 1, TimeSpan.Zero);
+        TableEntity dateTimeOffsetEntity = new("partition", "04-datetimeoffset");
+        DateTimeOffset dateTimeOffset = new(2020, 1, 1, 1, 1, 1, TimeSpan.Zero);
         dateTimeOffsetEntity.Add("datetimeoffset", dateTimeOffset);
         _tableClient.AddEntity(dateTimeOffsetEntity);
 
         // double
-        TableEntity doubleEntity = new TableEntity("partition", "05-double")
+        TableEntity doubleEntity = new("partition", "05-double")
         {
             { "double", 1.1 }
         };
         _tableClient.AddEntity(doubleEntity);
 
         // guid
-        TableEntity guidEntity = new TableEntity("partition", "06-guid");
+        TableEntity guidEntity = new("partition", "06-guid");
         Guid guid = Guid.NewGuid();
         guidEntity.Add("guid", guid);
         _tableClient.AddEntity(guidEntity);
 
         // int32
-        TableEntity intEntity = new TableEntity("partition", "07-int")
+        TableEntity intEntity = new("partition", "07-int")
         {
             { "int", 1 }
         };
         _tableClient.AddEntity(intEntity);
 
         // int64
-        TableEntity longEntity = new TableEntity("partition", "08-long")
+        TableEntity longEntity = new("partition", "08-long")
         {
             { "long", 1L }
         };
         _tableClient.AddEntity(longEntity);
 
         // special chars
-        TableEntity specialCharsEntity = new TableEntity("partition", "09-specialChars")
+        TableEntity specialCharsEntity = new("partition", "09-specialChars")
         {
             { "specialChars", specialChars }
         };
         _tableClient.AddEntity(specialCharsEntity);
 
         // quotes
-        TableEntity quotesEntity = new TableEntity("partition", "10-quotes")
+        TableEntity quotesEntity = new("partition", "10-quotes")
         {
             { "quotes",  "string with \"quotes\""}
         };

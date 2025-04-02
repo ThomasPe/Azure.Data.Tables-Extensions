@@ -128,7 +128,7 @@ public static class Extensions
     {
         // Only the PartitionKey & RowKey fields are required for deletion
         AsyncPageable<TableEntity> entities = tableClient
-            .QueryAsync<TableEntity>(select: new List<string>() { "PartitionKey", "RowKey" }, maxPerPage: 1000);
+            .QueryAsync<TableEntity>(select: ["PartitionKey", "RowKey"], maxPerPage: 1000);
 
         await entities.AsPages().ForEachAwaitAsync(async page =>
         {
@@ -148,7 +148,7 @@ public static class Extensions
     {
         // Only the PartitionKey & RowKey fields are required for deletion
         AsyncPageable<TableEntity> entities = tableClient
-            .QueryAsync<TableEntity>(x => x.PartitionKey == partitionKey, select: new List<string>() { "PartitionKey", "RowKey" }, maxPerPage: 1000);
+            .QueryAsync<TableEntity>(x => x.PartitionKey == partitionKey, select: ["PartitionKey", "RowKey"], maxPerPage: 1000);
 
         await entities.AsPages().ForEachAwaitAsync(async page =>
         {
@@ -190,20 +190,22 @@ public static class Extensions
         return null;
     }
 
-
     /// <summary>
     /// Counts all rows in the table
     /// </summary>
     /// <param name="tableClient">The authenticated TableClient</param>
     /// <returns>The total number of rows in the table</returns>
-    public static async Task<int> CountAllRowsAsync(this TableClient tableClient)
+    public static async Task<int> CountEntitiesAsync(this TableClient tableClient)
     {
+        // Only the PartitionKey fields is required for counting
+        IAsyncEnumerable<Page<TableEntity>> pages = tableClient
+            .QueryAsync<TableEntity>(select: ["PartitionKey"], maxPerPage: 1000).AsPages();
+
         int count = 0;
-        await foreach (var page in tableClient.QueryAsync<TableEntity>(maxPerPage: 1000).AsPages())
+        await foreach (Page<TableEntity> page in pages)
         {
             count += page.Values.Count;
         }
         return count;
     }
-
 }

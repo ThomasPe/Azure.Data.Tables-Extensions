@@ -6,7 +6,6 @@
 		<PackageVersion Include="Azure.Data.Tables" Version="12.10.0" />
 		<PackageVersion Include="System.Linq.Async" Version="6.0.1" />
 		<PackageVersion Include="CsvHelper" Version="33.0.1" />
-		<PackageVersion Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.3.1" />
 		<PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
 
 		<!-- Analyzers -->
@@ -19,12 +18,5 @@
 		<PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.9.2" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />-->
 		<!-- Testing -->
-		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-		<PackageVersion Include="MSTest.TestAdapter" Version="3.8.3" />
-		<PackageVersion Include="MSTest.TestFramework" Version="3.8.3" />
-		<PackageVersion Include="coverlet.collector" Version="6.0.4">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageVersion>
 	</ItemGroup>
 </Project>

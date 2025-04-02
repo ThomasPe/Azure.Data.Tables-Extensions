@@ -1,9 +1,6 @@
 using Azure.Data.Tables;
+using Azure.Data.Tables.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Medienstudio.Azure.Data.Tables.Extensions.Tests;
 
@@ -16,7 +13,7 @@ public class ExtensionTests
     private const string TableEndpoint = "http://127.0.0.1:10002/devstoreaccount1";
     private const string ConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
     private readonly TableServiceClient _tableServiceClient = new(ConnectionString);
-    private TableClient? _tableClient;
+    private TableClient _tableClient = null!;
 
     private const string createTableName = "createtesttable";
     const string createTableNameAsync = "testtableasync";
@@ -29,15 +26,12 @@ public class ExtensionTests
 
     private void CreateTestData()
     {
-        if (_tableClient is null)
-            return;
-
-        for(int i = 0; i < 30; i++)
+        for (int i = 0; i < 30; i++)
         {
             List<TableTransactionAction> batch = [];
             for (int j = 0; j < 100; j++)
             {
-                TableEntity e = new TableEntity()
+                TableEntity e = new()
                 {
                     PartitionKey = "123",
                     RowKey = Guid.NewGuid().ToString()
@@ -100,7 +94,7 @@ public class ExtensionTests
     public async Task GetFirstEntityAsyncTest()
     {
         CreateTestData();
-        TableEntity entity = await _tableClient.GetFirstEntityAsync<TableEntity>();
+        TableEntity? entity = await _tableClient.GetFirstEntityAsync<TableEntity>();
         Assert.IsNotNull(entity);
     }
 
@@ -108,10 +102,10 @@ public class ExtensionTests
     public async Task GetFirstEntityByPartitionAsyncTest()
     {
         CreateTestData();
-        TableEntity entity = await _tableClient.GetFirstEntityAsync<TableEntity>("123");
+        TableEntity? entity = await _tableClient.GetFirstEntityAsync<TableEntity>("123");
         Assert.IsNotNull(entity);
 
-        TableEntity entity2 = await _tableClient.GetFirstEntityAsync<TableEntity>(Guid.NewGuid().ToString());
+        TableEntity? entity2 = await _tableClient.GetFirstEntityAsync<TableEntity>(Guid.NewGuid().ToString());
         Assert.IsNull(entity2);
     }
 
@@ -121,7 +115,7 @@ public class ExtensionTests
         List<TableEntity> entities = [];
         for (int i = 0; i < 1000; i++)
         {
-            TableEntity e = new TableEntity()
+            TableEntity e = new()
             {
                 PartitionKey = (i % 20).ToString(),
                 RowKey = Guid.NewGuid().ToString()
@@ -152,7 +146,7 @@ public class ExtensionTests
     [TestMethod]
     public async Task CreateTableIfNotExistsSafeAsyncTest()
     {
-        List<global::Azure.Data.Tables.Models.TableItem> tables = await _tableServiceClient.QueryAsync(x => x.Name == createTableNameAsync).ToListAsync();
+        List<TableItem> tables = await _tableServiceClient.QueryAsync(x => x.Name == createTableNameAsync).ToListAsync();
         Assert.AreEqual(0, tables.Count);
 
         await _tableServiceClient.CreateTableIfNotExistsSafeAsync(createTableNameAsync);
@@ -167,7 +161,7 @@ public class ExtensionTests
     [TestMethod]
     public void CreateTableIfNotExistsSafeTest()
     {
-        List<global::Azure.Data.Tables.Models.TableItem> tables = _tableServiceClient.Query(x => x.Name == createTableName).ToList();
+        List<TableItem> tables = _tableServiceClient.Query(x => x.Name == createTableName).ToList();
         Assert.AreEqual(0, tables.Count);
 
         _tableServiceClient.CreateTableIfNotExistsSafe(createTableName);
@@ -191,6 +185,15 @@ public class ExtensionTests
 
         IList<TableEntity> entities2 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "2");
         Assert.AreEqual(1, entities2.Count);
+    }
+
+
+    [TestMethod]
+    public async Task TestEntitiesCount()
+    {
+        CreateTestData();
+        int count = await _tableClient.CountEntitiesAsync();
+        Assert.AreEqual(3003, count);
     }
 
     [TestCleanup]
