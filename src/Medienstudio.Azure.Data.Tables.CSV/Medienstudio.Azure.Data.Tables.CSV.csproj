@@ -3,7 +3,6 @@
 	<PropertyGroup>
 		<Description>An Azure.Data.Tables extension package for exporting Azure Tables as CSV for backup purposes.</Description>
 		<PackageTags>azure; azure table storage; Azure.Data.Tables; CSV; Backup; Export;</PackageTags>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
