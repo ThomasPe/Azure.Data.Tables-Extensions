@@ -1,15 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<LangVersion>latest</LangVersion>
 		<Description>An Azure.Data.Tables extension package for exporting Azure Tables as CSV for backup purposes.</Description>
-		<Copyright>2023 Thomas Pentenrieder</Copyright>
-		<PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
 		<PackageTags>azure; azure table storage; Azure.Data.Tables; CSV; Backup; Export;</PackageTags>
-		<AssemblyVersion>1.3.1</AssemblyVersion>
-		<FileVersion>1.3.1</FileVersion>
-		<Version>1.3.1</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 

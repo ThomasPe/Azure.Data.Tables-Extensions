@@ -1,6 +1,5 @@
 using Azure.Data.Tables;
 using Azure.Data.Tables.Models;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Medienstudio.Azure.Data.Tables.Extensions.Tests;
 
@@ -68,10 +67,10 @@ public class ExtensionTests
     {
         CreateTestData();
 
-        IList<TableEntity> rows = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>("2");
+        List<TableEntity> rows = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>("2");
         Assert.AreEqual(2, rows.Count);
 
-        IList<TableEntity> rows2 = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>(Guid.NewGuid().ToString());
+        List<TableEntity> rows2 = await _tableClient.GetAllEntitiesByRowKeyAsync<TableEntity>(Guid.NewGuid().ToString());
         Assert.AreEqual(0, rows2.Count);
     }
 
@@ -80,13 +79,13 @@ public class ExtensionTests
     {
         CreateTestData();
 
-        IList<TableEntity> rows1 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
+        List<TableEntity> rows1 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
         Assert.AreEqual(3000, rows1.Count);
 
-        IList<TableEntity> rows2 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("2");
+        List<TableEntity> rows2 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("2");
         Assert.AreEqual(1, rows2.Count);
 
-        IList<TableEntity> rows3 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>(Guid.NewGuid().ToString());
+        List<TableEntity> rows3 = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>(Guid.NewGuid().ToString());
         Assert.AreEqual(0, rows3.Count);
     }
 
@@ -139,7 +138,7 @@ public class ExtensionTests
     {
         CreateTestData();
         await _tableClient.DeleteAllEntitiesByPartitionKeyAsync("123");
-        IList<TableEntity> remaining = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
+        List<TableEntity> remaining = await _tableClient.GetAllEntitiesByPartitionKeyAsync<TableEntity>("123");
         Assert.AreEqual(0, remaining.Count);
     }
 
@@ -177,13 +176,13 @@ public class ExtensionTests
     public async Task GetAllEntitiesStartingWithTest()
     {
         CreateTestData();
-        IList<TableEntity> entites123 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "123");
+        List<TableEntity> entites123 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "123");
         Assert.AreEqual(3000, entites123.Count);
 
-        IList<TableEntity> entites1 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "1");
+        List<TableEntity> entites1 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "1");
         Assert.AreEqual(3001, entites1.Count);
 
-        IList<TableEntity> entities2 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "2");
+        List<TableEntity> entities2 = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "2");
         Assert.AreEqual(1, entities2.Count);
     }
 
@@ -194,6 +193,9 @@ public class ExtensionTests
         CreateTestData();
         int count = await _tableClient.CountEntitiesAsync();
         Assert.AreEqual(3003, count);
+
+        int count2 = await _tableClient.CountEntitiesAsync(partitionKey: "123");
+        Assert.AreEqual(3000, count2);
     }
 
     [TestCleanup]

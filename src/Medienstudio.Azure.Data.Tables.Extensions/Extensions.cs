@@ -41,7 +41,7 @@ public static class Extensions
     /// <param name="tableClient">The authenticated TableClient</param>
     /// <param name="partitionKey">The PartitionKey</param>
     /// <returns>List of all entities with specified PartitionKey</returns>
-    public static async Task<IList<T>> GetAllEntitiesByPartitionKeyAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
+    public static async Task<List<T>> GetAllEntitiesByPartitionKeyAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
     {
         return await tableClient.QueryAsync<T>(x => x.PartitionKey == partitionKey, maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
     }
@@ -54,7 +54,7 @@ public static class Extensions
     /// <param name="column">Column name on which to filter</param>
     /// <param name="prefix">String with which the column value should start with</param>
     /// <returns></returns>
-    public static async Task<IList<T>> GetAllEntitiesStartingWithAsync<T>(this TableClient tableClient, string column, string prefix) where T : class, ITableEntity, new()
+    public static async Task<List<T>> GetAllEntitiesStartingWithAsync<T>(this TableClient tableClient, string column, string prefix) where T : class, ITableEntity, new()
     {
         return await tableClient.QueryAsync<T>(Helpers.StartsWith(column, prefix), maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
     }
@@ -67,7 +67,7 @@ public static class Extensions
     /// <param name="rowKey">The RowKey</param>
     /// <remarks>Will result in a Table Scan which can result in bad query performance</remarks>
     /// <returns>List of all entities in the table with specified RowKey</returns>
-    public static async Task<IList<T>> GetAllEntitiesByRowKeyAsync<T>(this TableClient tableClient, string rowKey) where T : class, ITableEntity, new()
+    public static async Task<List<T>> GetAllEntitiesByRowKeyAsync<T>(this TableClient tableClient, string rowKey) where T : class, ITableEntity, new()
     {
         return await tableClient.QueryAsync<T>(x => x.RowKey == rowKey, maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
     }
@@ -194,12 +194,14 @@ public static class Extensions
     /// Counts all rows in the table
     /// </summary>
     /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="partitionKey">The PartitionKey to filter by, or null to count all rows</param>
     /// <returns>The total number of rows in the table</returns>
-    public static async Task<int> CountEntitiesAsync(this TableClient tableClient)
+    public static async Task<int> CountEntitiesAsync(this TableClient tableClient, string? partitionKey = null)
     {
-        // Only the PartitionKey fields is required for counting
+        string? filter = partitionKey is null ? null : TableClient.CreateQueryFilter($"PartitionKey eq {partitionKey}");
         IAsyncEnumerable<Page<TableEntity>> pages = tableClient
-            .QueryAsync<TableEntity>(select: ["PartitionKey"], maxPerPage: 1000).AsPages();
+            .QueryAsync<TableEntity>(filter: filter, select: ["PartitionKey"], maxPerPage: 1000)
+            .AsPages();
 
         int count = 0;
         await foreach (Page<TableEntity> page in pages)
