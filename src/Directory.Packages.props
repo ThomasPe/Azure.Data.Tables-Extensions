@@ -9,14 +9,12 @@
 		<PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
 
 		<!-- Analyzers -->
-		<!--
 		<PackageVersion Include="Roslynator.Analyzers" Version="4.12.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</PackageVersion>
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.9.2" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />-->
-		<!-- Testing -->
+		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
 	</ItemGroup>
 </Project>
