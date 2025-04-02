@@ -3,9 +3,9 @@
 	<PropertyGroup>
 		<Authors>Thomas Pentenrieder</Authors>
 		<Company>medienstudio.net</Company>
-		<AssemblyVersion>1.4.0</AssemblyVersion>
-		<FileVersion>1.4.0</FileVersion>
-		<Version>1.4.0</Version>
+		<AssemblyVersion>1.4.1</AssemblyVersion>
+		<FileVersion>1.4.1</FileVersion>
+		<Version>1.4.1</Version>
 		<Copyright>2025, Thomas Pentenrieder</Copyright>
 		<PackageProjectUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/ThomasPe/Azure.Data.Tables-Extensions</RepositoryUrl>
