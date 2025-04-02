@@ -1,6 +1,5 @@
 using Azure.Data.Tables;
 using Azure.Data.Tables.Models;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Medienstudio.Azure.Data.Tables.Extensions.Tests;
 
@@ -194,6 +193,9 @@ public class ExtensionTests
         CreateTestData();
         int count = await _tableClient.CountEntitiesAsync();
         Assert.AreEqual(3003, count);
+
+        int count2 = await _tableClient.CountEntitiesAsync("123");
+        Assert.AreEqual(3000, count2);
     }
 
     [TestCleanup]

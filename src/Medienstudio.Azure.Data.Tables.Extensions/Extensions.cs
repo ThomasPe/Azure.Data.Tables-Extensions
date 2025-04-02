@@ -194,12 +194,14 @@ public static class Extensions
     /// Counts all rows in the table
     /// </summary>
     /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="partitionKey">The PartitionKey to filter by, or null to count all rows</param>
     /// <returns>The total number of rows in the table</returns>
-    public static async Task<int> CountEntitiesAsync(this TableClient tableClient)
+    public static async Task<int> CountEntitiesAsync(this TableClient tableClient, string? partitionKey = null)
     {
-        // Only the PartitionKey fields is required for counting
+        string? filter = partitionKey is null ? null : TableClient.CreateQueryFilter($"PartitionKey eq '{partitionKey}'");
         IAsyncEnumerable<Page<TableEntity>> pages = tableClient
-            .QueryAsync<TableEntity>(select: ["PartitionKey"], maxPerPage: 1000).AsPages();
+            .QueryAsync<TableEntity>(filter: filter, select: [], maxPerPage: 1000)
+            .AsPages();
 
         int count = 0;
         await foreach (Page<TableEntity> page in pages)
