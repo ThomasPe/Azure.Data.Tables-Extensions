@@ -5,6 +5,9 @@ using System.Globalization;
 
 namespace Medienstudio.Azure.Data.Tables.CSV;
 
+/// <summary>
+/// Provides extension methods for exporting and importing Azure Table Storage data as CSV.
+/// </summary>
 public static class Extensions
 {
     const string TYPE_SUFFIX = "@type";
