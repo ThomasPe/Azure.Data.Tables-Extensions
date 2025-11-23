@@ -1,4 +1,7 @@
 ﻿<Project Sdk="MSTest.Sdk">
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Medienstudio.Azure.Data.Tables.CSV\Medienstudio.Azure.Data.Tables.CSV.csproj" />
 	</ItemGroup>

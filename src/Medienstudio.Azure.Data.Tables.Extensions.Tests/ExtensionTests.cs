@@ -6,11 +6,7 @@ namespace Medienstudio.Azure.Data.Tables.Extensions.Tests;
 [TestClass]
 public class ExtensionTests
 {
-    private const string DefaultEndpointsProtocol = "http";
-    private const string AccountName = "devstoreaccount1";
-    private const string AccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
-    private const string TableEndpoint = "http://127.0.0.1:10002/devstoreaccount1";
-    private const string ConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
+    private const string ConnectionString = "UseDevelopmentStorage=true";
     private readonly TableServiceClient _tableServiceClient = new(ConnectionString);
     private TableClient _tableClient = null!;
 

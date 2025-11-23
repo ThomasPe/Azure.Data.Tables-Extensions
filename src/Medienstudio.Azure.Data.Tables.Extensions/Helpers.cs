@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 
 namespace Medienstudio.Azure.Data.Tables.Extensions;
 
@@ -25,7 +24,7 @@ public static class Helpers
     /// <returns></returns>
     public static DateTimeOffset TicksKeyToDateTimeOffset(string ticksKey)
     {
-       return new DateTimeOffset(DateTime.MaxValue.Ticks - long.Parse(ticksKey), TimeSpan.Zero);
+        return new DateTimeOffset(DateTime.MaxValue.Ticks - long.Parse(ticksKey), TimeSpan.Zero);
     }
 
     /// <summary>
@@ -35,7 +34,7 @@ public static class Helpers
     /// <param name="key">Key to be converted</param>
     /// <returns>Key-safe string</returns>
     public static string ToSafeKey(string key) => Convert.ToBase64String(Encoding.UTF8.GetBytes(key)).Replace('/', '.');
-    
+
     /// <summary>
     /// Decodes the Key field
     /// </summary>
@@ -55,7 +54,7 @@ public static class Helpers
         if (lastChar == char.MaxValue)
         {
             return $"{column} ge '{prefix}'";
-        }    
+        }
         char nextChar = (char)(lastChar + 1);
         string prefixNext = prefix[..^1] + nextChar;
         return $"{column} ge '{prefix}' and {column} lt '{prefixNext}'";

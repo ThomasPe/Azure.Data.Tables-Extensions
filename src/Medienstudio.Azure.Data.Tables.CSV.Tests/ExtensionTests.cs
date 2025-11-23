@@ -3,7 +3,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using CsvHelper;
 using Medienstudio.Azure.Data.Tables.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Globalization;
 using System.Text;
 
@@ -12,15 +11,7 @@ namespace Medienstudio.Azure.Data.Tables.CSV.Tests;
 [TestClass]
 public class ExtensionTests
 {
-    private const string DefaultEndpointsProtocol = "http";
-    private const string AccountName = "devstoreaccount1";
-    private const string AccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
-
-    private const string TableEndpoint = "http://127.0.0.1:10002/devstoreaccount1";
-    private const string TableConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};TableEndpoint={TableEndpoint};";
-
-    private const string BlobEndpoint = "http://127.0.0.1:10000/" + AccountName;
-    private const string BlobConnectionString = $"DefaultEndpointsProtocol={DefaultEndpointsProtocol};AccountName={AccountName};AccountKey={AccountKey};BlobEndpoint={BlobEndpoint};";
+    private const string ConnectionString = "UseDevelopmentStorage=true";
 
     private TableServiceClient _tableServiceClient = null!;
     private TableClient _tableClient = null!;
@@ -30,7 +21,7 @@ public class ExtensionTests
     [TestInitialize]
     public void Initialize()
     {
-        _tableServiceClient = new TableServiceClient(TableConnectionString);
+        _tableServiceClient = new TableServiceClient(ConnectionString);
         _tableClient = _tableServiceClient.GetTableClient(RandomTableName());
         _tableClient.CreateIfNotExists();
     }
@@ -114,7 +105,7 @@ public class ExtensionTests
     public async Task TestExportAzureBlob()
     {
         CreateTestData();
-        BlobContainerClient containerClient = new(BlobConnectionString, "testcontainer");
+        BlobContainerClient containerClient = new(ConnectionString, "testcontainer");
         containerClient.CreateIfNotExists();
         BlobClient blobClient = containerClient.GetBlobClient("test.csv");
 
