@@ -130,12 +130,12 @@ public static class Extensions
         AsyncPageable<TableEntity> entities = tableClient
             .QueryAsync<TableEntity>(select: ["PartitionKey", "RowKey"], maxPerPage: 1000);
 
-        await entities.AsPages().ForEachAwaitAsync(async page =>
+        await foreach (Page<TableEntity> page in entities.AsPages())
         {
             // Since we don't know how many rows the table has and the results are ordered by PartitonKey+RowKey
             // we'll delete each page immediately and not cache the whole table in memory
             await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
-        });
+        }
     }
 
     /// <summary>
@@ -150,12 +150,12 @@ public static class Extensions
         AsyncPageable<TableEntity> entities = tableClient
             .QueryAsync<TableEntity>(x => x.PartitionKey == partitionKey, select: ["PartitionKey", "RowKey"], maxPerPage: 1000);
 
-        await entities.AsPages().ForEachAwaitAsync(async page =>
+        await foreach (Page<TableEntity> page in entities.AsPages())
         {
             // Since we don't know how many rows the table has and the results are ordered by PartitonKey+RowKey
             // we'll delete each page immediately and not cache the whole table in memory
             await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete).ConfigureAwait(false);
-        });
+        }
     }
 
     /// <summary>
