@@ -29,6 +29,15 @@ CreateTestData();
 using StreamWriter writer = File.CreateText("test.csv");
 await _tableClient.ExportCSVAsync(writer);
 
+// Reuse a discovered schema to stream subsequent exports in a single table query
+CsvExportSchema schema = await _tableClient.GetCSVExportSchemaAsync();
+using StreamWriter schemaWriter = File.CreateText("test-with-schema.csv");
+await _tableClient.ExportCSVAsync(schemaWriter, schema);
+
+// Query the table once and buffer all rows before exporting
+using StreamWriter inMemoryWriter = File.CreateText("test-in-memory.csv");
+await _tableClient.ExportCSVInMemoryAsync(inMemoryWriter);
+
 // Export all rows as CSV to Azure BLob Storage
 BlobContainerClient containerClient = new(BlobConnectionString, "testcontainer");
 var blobClient = containerClient.GetBlobClient("test.csv");
@@ -40,3 +49,5 @@ await _tableClient.ExportCSVAsync(writer);
 using StreamReader reader = new("test.csv");
 await _tableClient.ImportCSVAsync(reader);
 ```
+
+`ExportCSVAsync(writer)` discovers the table properties before streaming rows, so it queries the table twice. Reuse a `CsvExportSchema` for later one-query exports. If an entity contains a property outside the supplied schema, the export fails instead of omitting that column. A schema contains only custom table properties; system properties and `odata.etag` cannot be supplied. `ExportCSVInMemoryAsync(writer)` queries the table once, but buffers every entity and should only be used when the table fits comfortably in memory.

@@ -22,13 +22,127 @@ public static class Extensions
     /// <returns>Task<void></void></returns>
     public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer)
     {
-        List<TableEntity> rows = [];
-        List<string> systemProperties = ["PartitionKey", "RowKey", "Timestamp"];
-        List<string> keys = [];
-        keys.AddRange(systemProperties);
-        List<string> ignore = ["odata.etag"];
+        CsvExportSchema schema = await tableClient.GetCSVExportSchemaAsync();
+        await tableClient.ExportCSVAsync(writer, schema);
+    }
 
-        using CsvWriter csv = new(writer, CultureInfo.InvariantCulture);
+    /// <summary>
+    /// Returns the CSV export schema discovered from all entities in the table.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <returns>The non-system properties in the order they are first encountered.</returns>
+    public static async Task<CsvExportSchema> GetCSVExportSchemaAsync(this TableClient tableClient)
+    {
+        HashSet<string> knownProperties = new(StringComparer.Ordinal);
+        List<string> properties = [];
+
+        await foreach (TableEntity row in tableClient.QueryAsync<TableEntity>())
+        {
+            AddProperties(row, knownProperties, properties);
+        }
+
+        return new CsvExportSchema(properties);
+    }
+
+    /// <summary>
+    /// Returns all rows in the table as CSV to the provided writer after buffering them in memory.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="writer">TextWriter instance that takes the serialized result</param>
+    /// <returns>Task<void></void></returns>
+    /// <remarks>Use this method only when the table fits comfortably in memory. It queries the table once and buffers every entity before writing.</remarks>
+    public static async Task ExportCSVInMemoryAsync(this TableClient tableClient, TextWriter writer)
+    {
+        List<TableEntity> rows = [];
+        await foreach (TableEntity row in tableClient.QueryAsync<TableEntity>())
+        {
+            rows.Add(row);
+        }
+
+        CsvExportSchema schema = CreateCSVExportSchema(rows);
+        WriteCSV(writer, schema, rows);
+    }
+
+    /// <summary>
+    /// Returns all rows in the table as CSV to the provided writer using the supplied schema.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="writer">TextWriter instance that takes the serialized result</param>
+    /// <param name="schema">The non-system properties to include in the CSV export.</param>
+    /// <returns>Task<void></void></returns>
+    /// <exception cref="InvalidOperationException">An entity contains a property that is absent from <paramref name="schema"/>.</exception>
+    public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer, CsvExportSchema schema)
+    {
+        ArgumentNullException.ThrowIfNull(schema);
+        List<string> keys = CreateCSVKeys(schema);
+        HashSet<string> schemaProperties = schema.Properties.ToHashSet(StringComparer.Ordinal);
+
+        using CsvWriter csv = CreateCSVWriter(writer);
+        WriteCSVHeader(csv, keys);
+
+        await foreach (TableEntity row in tableClient.QueryAsync<TableEntity>())
+        {
+            WriteCSVRow(csv, keys, schemaProperties, row);
+        }
+
+        csv.Flush();
+    }
+
+    private static CsvExportSchema CreateCSVExportSchema(IEnumerable<TableEntity> rows)
+    {
+        HashSet<string> knownProperties = new(StringComparer.Ordinal);
+        List<string> properties = [];
+
+        foreach (TableEntity row in rows)
+        {
+            AddProperties(row, knownProperties, properties);
+        }
+
+        return new CsvExportSchema(properties);
+    }
+
+    private static void AddProperties(TableEntity row, HashSet<string> knownProperties, List<string> properties)
+    {
+        foreach (KeyValuePair<string, object> property in row)
+        {
+            if (IsExportedProperty(property.Key) && knownProperties.Add(property.Key))
+            {
+                properties.Add(property.Key);
+            }
+        }
+    }
+
+    private static void WriteCSV(TextWriter writer, CsvExportSchema schema, IEnumerable<TableEntity> rows)
+    {
+        List<string> keys = CreateCSVKeys(schema);
+        HashSet<string> schemaProperties = schema.Properties.ToHashSet(StringComparer.Ordinal);
+
+        using CsvWriter csv = CreateCSVWriter(writer);
+        WriteCSVHeader(csv, keys);
+
+        foreach (TableEntity row in rows)
+        {
+            WriteCSVRow(csv, keys, schemaProperties, row);
+        }
+
+        csv.Flush();
+    }
+
+    private static List<string> CreateCSVKeys(CsvExportSchema schema)
+    {
+        List<string> keys = [.. SYSTEM_PROPERTIES];
+        foreach (string property in schema.Properties)
+        {
+            keys.Add(property);
+            keys.Add(property + TYPE_SUFFIX);
+        }
+
+        return keys;
+    }
+
+    private static CsvWriter CreateCSVWriter(TextWriter writer)
+    {
+        CsvWriter csv = new(writer, CultureInfo.InvariantCulture);
 
         // preserve milliseconds, truncate trailing zeros
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = ["yyyy-MM-ddTHH:mm:ss.FFFFFFFZ"];
@@ -41,80 +155,59 @@ public static class Extensions
         // serilaize booleans lowercase
         csv.Context.TypeConverterCache.AddConverter<bool>(new BoolConverter());
 
+        return csv;
+    }
 
-        IAsyncEnumerable<global::Azure.Page<TableEntity>> query = tableClient.QueryAsync<TableEntity>().AsPages();
-
-        // loop through all result pages
-        await foreach (global::Azure.Page<TableEntity> page in query)
-        {
-            // loop through all rows in the page
-            foreach (TableEntity entity in page.Values)
-            {
-                // cache all rows
-                rows.Add(entity);
-
-                // prepare the list of keys for csv header
-                foreach (KeyValuePair<string, object> property in entity)
-                {
-                    // skip properties that should be ignored for the export like odata.etag
-                    if (ignore.Contains(property.Key))
-                    {
-                        continue;
-                    }
-                    // add the property key to the list of keys if it is not already in the list
-                    if (!keys.Contains(property.Key))
-                    {
-                        keys.Add(property.Key);
-                    }
-                    // add the type of the property to the list of keys if it is not a system property
-                    if (!systemProperties.Contains(property.Key) && !keys.Contains(property.Key + "@type"))
-                    {
-                        keys.Add(property.Key + "@type");
-                    }
-                }
-            }
-        }
-
-        // create the csv header
+    private static void WriteCSVHeader(CsvWriter csv, IEnumerable<string> keys)
+    {
         foreach (string key in keys)
         {
             csv.WriteField(key);
         }
         csv.NextRecord();
+    }
 
-        // create the csv rows
-        foreach (TableEntity row in rows)
+    private static void WriteCSVRow(CsvWriter csv, IEnumerable<string> keys, HashSet<string> schemaProperties, TableEntity row)
+    {
+        foreach (KeyValuePair<string, object> property in row)
         {
-            foreach (string key in keys)
+            if (IsExportedProperty(property.Key) && !schemaProperties.Contains(property.Key))
             {
-                if (row.TryGetValue(key, out object value))
-                {
-                    // write the value of the property
-                    csv.WriteField(value);
-                }
-                else if (key.EndsWith(TYPE_SUFFIX))
-                {
-                    // write the type of the property
-                    if (row.ContainsKey(key[..^TYPE_SUFFIX.Length]))
-                    {
-                        csv.WriteField(row[key[..^TYPE_SUFFIX.Length]].GetPropertyTypeName());
-                    }
-                    else
-                    {
-                        csv.WriteField("");
-                    }
+                throw new InvalidOperationException($"The property '{property.Key}' is not included in the CSV export schema.");
+            }
+        }
 
+        foreach (string key in keys)
+        {
+            if (row.TryGetValue(key, out object value))
+            {
+                // write the value of the property
+                csv.WriteField(value);
+            }
+            else if (key.EndsWith(TYPE_SUFFIX))
+            {
+                // write the type of the property
+                if (row.ContainsKey(key[..^TYPE_SUFFIX.Length]))
+                {
+                    csv.WriteField(row[key[..^TYPE_SUFFIX.Length]].GetPropertyTypeName());
                 }
                 else
                 {
-                    // write an empty field
                     csv.WriteField("");
                 }
             }
-            csv.NextRecord();
+            else
+            {
+                // write an empty field
+                csv.WriteField("");
+            }
         }
+        csv.NextRecord();
+    }
 
-        csv.Flush();
+    private static bool IsExportedProperty(string propertyName)
+    {
+        return propertyName != "odata.etag" && !SYSTEM_PROPERTIES.Contains(propertyName);
     }
 
 
