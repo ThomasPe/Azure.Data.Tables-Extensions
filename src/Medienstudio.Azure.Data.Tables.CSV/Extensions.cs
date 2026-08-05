@@ -32,7 +32,7 @@ public static class Extensions
 
         // preserve milliseconds, truncate trailing zeros
         csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = ["yyyy-MM-ddTHH:mm:ss.FFFFFFFZ"];
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset>().Formats = ["yyyy-MM-ddTHH:mm:ss.FFFFFFFZ"];
+        csv.Context.TypeConverterCache.AddConverter<DateTimeOffset>(new UtcDateTimeOffsetConverter());
 
 
         // serialize byte arrays as base64 strings
@@ -140,11 +140,6 @@ public static class Extensions
             int i = 0;
             while (csv.TryGetField(i, out string? field))
             {
-                if (string.IsNullOrEmpty(field))
-                {
-                    i++;
-                    continue;
-                }
                 string? label = csv.HeaderRecord?[i];
                 if (label == null)
                 {
@@ -153,6 +148,12 @@ public static class Extensions
 
                 if (SYSTEM_PROPERTIES.Contains(label))
                 {
+                    if (string.IsNullOrEmpty(field))
+                    {
+                        i++;
+                        continue;
+                    }
+
                     switch (label)
                     {
                         case "PartitionKey":
@@ -169,8 +170,11 @@ public static class Extensions
                 else if (!label.EndsWith(TYPE_SUFFIX))
                 {
                     string? type = csv.GetField<string>(label + "@type")?.Split('@')[0];
-                    object value = CoerceType(type, field);
-                    entity.Add(label, value);
+                    if (!string.IsNullOrEmpty(field) || type is "String" or "Binary")
+                    {
+                        object value = CoerceType(type, field ?? string.Empty);
+                        entity.Add(label, value);
+                    }
                 }
 
                 i++;
