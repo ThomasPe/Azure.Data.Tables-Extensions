@@ -16,7 +16,7 @@ public class ExtensionTests
     private TableServiceClient _tableServiceClient = null!;
     private TableClient _tableClient = null!;
 
-    private const string specialChars = "äöüßÄÖÜ#-.;:_!§$%&/()=?`´*'+~<>|@€{[]}\\^°²³";
+    private const string specialChars = "Ã¤Ã¶Ã¼ÃŸÃ„Ã–Ãœ#-.;:_!Â§$%&/()=?`Â´*'+~<>|@â‚¬{[]}\\^Â°Â²Â³";
 
     [TestInitialize]
     public void Initialize()
@@ -60,7 +60,7 @@ public class ExtensionTests
 
         string[] dataDateTimeOffset = lines[4].Split(',');
         Assert.AreEqual("partition", dataDateTimeOffset[0]);
-        Assert.AreEqual("2020-01-01T01:01:01Z", dataDateTimeOffset[9]);
+        Assert.AreEqual("2019-12-31T23:01:01Z", dataDateTimeOffset[9]);
         Assert.AreEqual("DateTime", dataDateTimeOffset[10]);
 
         string[] dataDouble = lines[5].Split(',');
@@ -164,6 +164,20 @@ public class ExtensionTests
         Assert.AreEqual(3003, rows.Count);
     }
 
+    [TestMethod]
+    public async Task TestImportPreservesEmptyValues()
+    {
+        const string csvContent = "PartitionKey,RowKey,emptyString,emptyString@type,emptyBinary,emptyBinary@type,emptyInt32,emptyInt32@type\r\npartition,empty,,String,,Binary,,Int32\r\n";
+        using StringReader reader = new(csvContent);
+
+        await _tableClient.ImportCSVAsync(reader);
+
+        TableEntity entity = (await _tableClient.GetEntityAsync<TableEntity>("partition", "empty")).Value;
+        Assert.AreEqual(string.Empty, entity.GetString("emptyString"));
+        CollectionAssert.AreEqual(Array.Empty<byte>(), entity.GetBinary("emptyBinary"));
+        Assert.IsFalse(entity.ContainsKey("emptyInt32"));
+    }
+
     private static string RandomTableName()
     {
         return "t" + Guid.NewGuid().ToString("N");
@@ -198,7 +212,7 @@ public class ExtensionTests
 
         // datetimeoffset
         TableEntity dateTimeOffsetEntity = new("partition", "04-datetimeoffset");
-        DateTimeOffset dateTimeOffset = new(2020, 1, 1, 1, 1, 1, TimeSpan.Zero);
+        DateTimeOffset dateTimeOffset = new(2020, 1, 1, 1, 1, 1, TimeSpan.FromHours(2));
         dateTimeOffsetEntity.Add("datetimeoffset", dateTimeOffset);
         _tableClient.AddEntity(dateTimeOffsetEntity);
 
