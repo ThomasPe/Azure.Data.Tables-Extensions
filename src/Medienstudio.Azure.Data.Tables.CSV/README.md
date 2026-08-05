@@ -26,28 +26,39 @@ TableClient tableClient = tableServiceClient.GetTableClient("tablename");
 
 // Export all rows from the table to a CSV file
 CreateTestData();
-using StreamWriter writer = File.CreateText("test.csv");
-await _tableClient.ExportCSVAsync(writer);
+using StreamWriter fileWriter = File.CreateText("test.csv");
+await tableClient.ExportCSVAsync(fileWriter);
 
 // Reuse a discovered schema to stream subsequent exports in a single table query
-CsvExportSchema schema = await _tableClient.GetCSVExportSchemaAsync();
+CsvExportSchema schema = await tableClient.GetCSVExportSchemaAsync();
 using StreamWriter schemaWriter = File.CreateText("test-with-schema.csv");
-await _tableClient.ExportCSVAsync(schemaWriter, schema);
+await tableClient.ExportCSVAsync(schemaWriter, schema);
+
+// Persist a schema in a separate metadata table for later one-query exports
+TableClient metadataTableClient = tableServiceClient.GetTableClient("csvexportmetadata");
+await metadataTableClient.CreateIfNotExistsAsync();
+await tableClient.StoreCSVExportSchemaAsync(metadataTableClient, schema);
+CsvExportSchema? storedSchema = await tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient);
+if (storedSchema is not null)
+{
+    using StreamWriter storedSchemaWriter = File.CreateText("test-with-stored-schema.csv");
+    await tableClient.ExportCSVAsync(storedSchemaWriter, storedSchema);
+}
 
 // Query the table once and buffer all rows before exporting
 using StreamWriter inMemoryWriter = File.CreateText("test-in-memory.csv");
-await _tableClient.ExportCSVInMemoryAsync(inMemoryWriter);
+await tableClient.ExportCSVInMemoryAsync(inMemoryWriter);
 
-// Export all rows as CSV to Azure BLob Storage
+// Export all rows as CSV to Azure Blob Storage
 BlobContainerClient containerClient = new(BlobConnectionString, "testcontainer");
-var blobClient = containerClient.GetBlobClient("test.csv");
-var stream = await blobClient.OpenWriteAsync(true, new BlobOpenWriteOptions() { HttpHeaders = new BlobHttpHeaders { ContentType = "text/csv" } });
-using StreamWriter writer = new(stream);
-await _tableClient.ExportCSVAsync(writer);
+BlobClient blobClient = containerClient.GetBlobClient("test.csv");
+Stream blobStream = await blobClient.OpenWriteAsync(true, new BlobOpenWriteOptions() { HttpHeaders = new BlobHttpHeaders { ContentType = "text/csv" } });
+using StreamWriter blobWriter = new(blobStream);
+await tableClient.ExportCSVAsync(blobWriter);
 
 // Import all rows from a CSV file to the table
 using StreamReader reader = new("test.csv");
-await _tableClient.ImportCSVAsync(reader);
+await tableClient.ImportCSVAsync(reader);
 ```
 
-`ExportCSVAsync(writer)` discovers the table properties before streaming rows, so it queries the table twice. Reuse a `CsvExportSchema` for later one-query exports. If an entity contains a property outside the supplied schema, the export fails instead of omitting that column. A schema contains only custom table properties; system properties and `odata.etag` cannot be supplied. `ExportCSVInMemoryAsync(writer)` queries the table once, but buffers every entity and should only be used when the table fits comfortably in memory.
+`ExportCSVAsync(writer)` discovers the table properties before streaming rows, so it queries the table twice. Reuse a `CsvExportSchema` for later one-query exports. If an entity contains a property outside the supplied schema, the export fails instead of omitting that column. A schema contains only custom table properties; system properties and `odata.etag` cannot be supplied. Store schemas in a separate metadata table; the helpers use a hash of the source table URI as the metadata partition key. `ExportCSVInMemoryAsync(writer)` queries the table once, but buffers every entity and should only be used when the table fits comfortably in memory.

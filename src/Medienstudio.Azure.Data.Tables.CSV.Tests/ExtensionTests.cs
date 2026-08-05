@@ -198,6 +198,118 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public async Task TestStoredCsvExportSchema()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            Assert.IsNull(await _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+
+            CsvExportSchema schema = new(["first", "second"]);
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, schema);
+
+            CsvExportSchema? storedSchema = await _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient);
+            Assert.IsNotNull(storedSchema);
+            CollectionAssert.AreEqual(schema.Properties.ToArray(), storedSchema.Properties.ToArray());
+
+            CsvExportSchema replacementSchema = new(["replacement"]);
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, replacementSchema);
+
+            storedSchema = await _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient);
+            Assert.IsNotNull(storedSchema);
+            CollectionAssert.AreEqual(replacementSchema.Properties.ToArray(), storedSchema.Properties.ToArray());
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    [TestMethod]
+    public async Task TestStoredCsvExportSchemaRequiresSeparateTable()
+    {
+        CsvExportSchema schema = new([]);
+
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.StoreCSVExportSchemaAsync(_tableClient, schema));
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(_tableClient));
+    }
+
+    [TestMethod]
+    public async Task TestGetStoredCsvExportSchemaThrowsWhenSchemaJsonMissing()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, new CsvExportSchema(["value"]));
+            TableEntity metadata = await GetSingleMetadataEntityAsync(metadataTableClient);
+
+            // replace the entity without a SchemaJson property
+            await metadataTableClient.UpsertEntityAsync(new TableEntity(metadata.PartitionKey, metadata.RowKey), TableUpdateMode.Replace);
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    [TestMethod]
+    public async Task TestGetStoredCsvExportSchemaThrowsWhenSchemaJsonIsMalformed()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, new CsvExportSchema(["value"]));
+            TableEntity metadata = await GetSingleMetadataEntityAsync(metadataTableClient);
+
+            TableEntity corrupted = new(metadata.PartitionKey, metadata.RowKey) { ["SchemaJson"] = "not-json" };
+            await metadataTableClient.UpsertEntityAsync(corrupted, TableUpdateMode.Replace);
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    [TestMethod]
+    public async Task TestGetStoredCsvExportSchemaThrowsWhenStoredPropertiesAreInvalid()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, new CsvExportSchema(["value"]));
+            TableEntity metadata = await GetSingleMetadataEntityAsync(metadataTableClient);
+
+            // "PartitionKey" is a reserved property name that CsvExportSchema rejects
+            TableEntity corrupted = new(metadata.PartitionKey, metadata.RowKey) { ["SchemaJson"] = "[\"PartitionKey\"]" };
+            await metadataTableClient.UpsertEntityAsync(corrupted, TableUpdateMode.Replace);
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    private static async Task<TableEntity> GetSingleMetadataEntityAsync(TableClient metadataTableClient)
+    {
+        await foreach (TableEntity entity in metadataTableClient.QueryAsync<TableEntity>())
+        {
+            return entity;
+        }
+
+        throw new InvalidOperationException("Expected a stored metadata entity.");
+    }
+
+    [TestMethod]
     public void TestCsvExportSchemaValidation()
     {
         Assert.ThrowsException<ArgumentNullException>(() => new CsvExportSchema(null!));
@@ -392,6 +504,12 @@ public class ExtensionTests
         {
             Mutate();
             base.Write(buffer, index, count);
+        }
+
+        public override void Write(ReadOnlySpan<char> buffer)
+        {
+            Mutate();
+            base.Write(buffer);
         }
 
         private void Mutate()

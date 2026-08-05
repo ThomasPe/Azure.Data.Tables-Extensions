@@ -2,6 +2,9 @@
 using CsvHelper;
 using Medienstudio.Azure.Data.Tables.Extensions;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace Medienstudio.Azure.Data.Tables.CSV;
 
@@ -11,6 +14,10 @@ namespace Medienstudio.Azure.Data.Tables.CSV;
 public static class Extensions
 {
     const string TYPE_SUFFIX = "@type";
+    const string SCHEMA_ROW_KEY = "csv-export-schema";
+    const string SCHEMA_JSON_PROPERTY = "SchemaJson";
+    const string SOURCE_TABLE_URI_PROPERTY = "SourceTableUri";
+    const int MAX_TABLE_STRING_PROPERTY_SIZE = 64 * 1024;
     static readonly string[] SYSTEM_PROPERTIES = ["PartitionKey", "RowKey", "Timestamp"];
 
 
@@ -42,6 +49,76 @@ public static class Extensions
         }
 
         return new CsvExportSchema(properties);
+    }
+
+    /// <summary>
+    /// Gets a previously stored CSV export schema for this table.
+    /// </summary>
+    /// <param name="tableClient">The source table.</param>
+    /// <param name="metadataTableClient">A separate table that stores CSV export schemas.</param>
+    /// <returns>The stored schema, or <see langword="null"/> when no schema has been stored.</returns>
+    /// <exception cref="InvalidOperationException">The metadata table is the source table, or the stored schema is invalid.</exception>
+    public static async Task<CsvExportSchema?> GetStoredCSVExportSchemaAsync(this TableClient tableClient, TableClient metadataTableClient)
+    {
+        EnsureSeparateMetadataTable(tableClient, metadataTableClient);
+
+        global::Azure.NullableResponse<TableEntity> response = await metadataTableClient.GetEntityIfExistsAsync<TableEntity>(GetSchemaPartitionKey(tableClient), SCHEMA_ROW_KEY);
+        if (!response.HasValue)
+        {
+            return null;
+        }
+
+        TableEntity metadata = response.Value!;
+        string? schemaJson = metadata.GetString(SCHEMA_JSON_PROPERTY);
+        if (string.IsNullOrEmpty(schemaJson))
+        {
+            throw new InvalidOperationException("The stored CSV export schema is missing its property list.");
+        }
+
+        try
+        {
+            string[]? properties = JsonSerializer.Deserialize<string[]>(schemaJson);
+            return properties is null
+                ? throw new InvalidOperationException("The stored CSV export schema has an invalid property list.")
+                : new CsvExportSchema(properties);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException("The stored CSV export schema has an invalid property list.", exception);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InvalidOperationException("The stored CSV export schema has an invalid property list.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Stores a CSV export schema for this table.
+    /// </summary>
+    /// <param name="tableClient">The source table.</param>
+    /// <param name="metadataTableClient">A separate table that stores CSV export schemas.</param>
+    /// <param name="schema">The schema to store.</param>
+    /// <returns>A task that represents the asynchronous store operation.</returns>
+    /// <exception cref="ArgumentException">The serialized schema exceeds the Azure Table Storage string property limit.</exception>
+    /// <exception cref="InvalidOperationException">The metadata table is the source table.</exception>
+    public static async Task StoreCSVExportSchemaAsync(this TableClient tableClient, TableClient metadataTableClient, CsvExportSchema schema)
+    {
+        EnsureSeparateMetadataTable(tableClient, metadataTableClient);
+        ArgumentNullException.ThrowIfNull(schema);
+
+        string schemaJson = JsonSerializer.Serialize(schema.Properties);
+        if (Encoding.UTF8.GetByteCount(schemaJson) > MAX_TABLE_STRING_PROPERTY_SIZE)
+        {
+            throw new ArgumentException("The serialized CSV export schema exceeds the Azure Table Storage string property limit.", nameof(schema));
+        }
+
+        TableEntity entity = new(GetSchemaPartitionKey(tableClient), SCHEMA_ROW_KEY)
+        {
+            [SCHEMA_JSON_PROPERTY] = schemaJson,
+            [SOURCE_TABLE_URI_PROPERTY] = tableClient.Uri.AbsoluteUri
+        };
+
+        await metadataTableClient.UpsertEntityAsync(entity, TableUpdateMode.Replace);
     }
 
     /// <summary>
@@ -208,6 +285,21 @@ public static class Extensions
     private static bool IsExportedProperty(string propertyName)
     {
         return propertyName != "odata.etag" && !SYSTEM_PROPERTIES.Contains(propertyName);
+    }
+
+    private static void EnsureSeparateMetadataTable(TableClient tableClient, TableClient metadataTableClient)
+    {
+        ArgumentNullException.ThrowIfNull(metadataTableClient);
+        if (tableClient.Uri == metadataTableClient.Uri)
+        {
+            throw new InvalidOperationException("The metadata table must be separate from the source table.");
+        }
+    }
+
+    private static string GetSchemaPartitionKey(TableClient tableClient)
+    {
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(tableClient.Uri.AbsoluteUri));
+        return Convert.ToHexString(hash);
     }
 
 
