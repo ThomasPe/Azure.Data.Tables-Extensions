@@ -152,7 +152,7 @@ public static class Extensions
         // serialize byte arrays as base64 strings
         csv.Context.TypeConverterCache.AddConverter<byte[]>(new BinaryConverter());
 
-        // serilaize booleans lowercase
+        // serialize booleans lowercase
         csv.Context.TypeConverterCache.AddConverter<bool>(new BoolConverter());
 
         return csv;
