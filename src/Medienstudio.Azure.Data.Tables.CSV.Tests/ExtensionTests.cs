@@ -117,20 +117,238 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public async Task TestExportWithSchema()
+    {
+        CreateTestData();
+        CsvExportSchema schema = await _tableClient.GetCSVExportSchemaAsync();
+        CollectionAssert.AreEqual(new[] { "binary", "bool", "datetime", "datetimeoffset", "double", "guid", "int", "long", "specialChars", "quotes" }, schema.Properties.ToArray());
+
+        string defaultExport = await ExportToStringAsync(writer => _tableClient.ExportCSVAsync(writer));
+        string schemaExport = await ExportToStringAsync(writer => _tableClient.ExportCSVAsync(writer, schema));
+
+        string header = schemaExport.Split("\r\n")[0];
+        Assert.AreEqual("PartitionKey,RowKey,Timestamp,binary,binary@type,bool,bool@type,datetime,datetime@type,datetimeoffset,datetimeoffset@type,double,double@type,guid,guid@type,int,int@type,long,long@type,specialChars,specialChars@type,quotes,quotes@type", header);
+        Assert.AreEqual(defaultExport, schemaExport);
+    }
+
+    [TestMethod]
+    public async Task TestExportInMemory()
+    {
+        CreateTestData();
+        string defaultExport = await ExportToStringAsync(writer => _tableClient.ExportCSVAsync(writer));
+        string inMemoryExport = await ExportToStringAsync(writer => _tableClient.ExportCSVInMemoryAsync(writer));
+
+        string[] lines = inMemoryExport.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        Assert.AreEqual(11, lines.Length);
+        Assert.AreEqual("PartitionKey,RowKey,Timestamp,binary,binary@type,bool,bool@type,datetime,datetime@type,datetimeoffset,datetimeoffset@type,double,double@type,guid,guid@type,int,int@type,long,long@type,specialChars,specialChars@type,quotes,quotes@type", lines[0]);
+        Assert.AreEqual(defaultExport, inMemoryExport);
+    }
+
+    [TestMethod]
+    public async Task TestExportEmptyTable()
+    {
+        CsvExportSchema schema = await _tableClient.GetCSVExportSchemaAsync();
+        Assert.AreEqual(0, schema.Properties.Count);
+
+        string defaultExport = await ExportToStringAsync(writer => _tableClient.ExportCSVAsync(writer));
+        string schemaExport = await ExportToStringAsync(writer => _tableClient.ExportCSVAsync(writer, schema));
+        string inMemoryExport = await ExportToStringAsync(writer => _tableClient.ExportCSVInMemoryAsync(writer));
+
+        Assert.AreEqual("PartitionKey,RowKey,Timestamp\r\n", defaultExport);
+        Assert.AreEqual(defaultExport, schemaExport);
+        Assert.AreEqual(defaultExport, inMemoryExport);
+    }
+
+    [TestMethod]
+    public async Task TestExportExcludesODataEtag()
+    {
+        TableEntity entity = new("partition", "etag")
+        {
+            { "odata.etag", "ignored" },
+            { "value", "included" }
+        };
+        _tableClient.AddEntity(entity);
+
+        CsvExportSchema schema = await _tableClient.GetCSVExportSchemaAsync();
+        CollectionAssert.AreEqual(new[] { "value" }, schema.Properties.ToArray());
+
+        string export = await ExportToStringAsync(writer => _tableClient.ExportCSVAsync(writer));
+        Assert.IsFalse(export.Contains("odata.etag", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task TestExportDetectsSchemaDrift()
+    {
+        _tableClient.AddEntity(new TableEntity("partition", "initial") { { "known", "value" } });
+        using MutatingStringWriter writer = new(() => _tableClient.AddEntity(new TableEntity("partition", "new") { { "unknown", "value" } }));
+
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.ExportCSVAsync(writer));
+    }
+
+    [TestMethod]
+    public async Task TestExportWithIncompleteSchema()
+    {
+        TableEntity entity = new("partition", "incomplete")
+        {
+            { "value", 1 }
+        };
+        _tableClient.AddEntity(entity);
+
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.ExportCSVAsync(TextWriter.Null, new CsvExportSchema([])));
+    }
+
+    [TestMethod]
+    public async Task TestStoredCsvExportSchema()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            Assert.IsNull(await _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+
+            CsvExportSchema schema = new(["first", "second"]);
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, schema);
+
+            CsvExportSchema? storedSchema = await _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient);
+            Assert.IsNotNull(storedSchema);
+            CollectionAssert.AreEqual(schema.Properties.ToArray(), storedSchema.Properties.ToArray());
+
+            CsvExportSchema replacementSchema = new(["replacement"]);
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, replacementSchema);
+
+            storedSchema = await _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient);
+            Assert.IsNotNull(storedSchema);
+            CollectionAssert.AreEqual(replacementSchema.Properties.ToArray(), storedSchema.Properties.ToArray());
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    [TestMethod]
+    public async Task TestStoredCsvExportSchemaRequiresSeparateTable()
+    {
+        CsvExportSchema schema = new([]);
+
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.StoreCSVExportSchemaAsync(_tableClient, schema));
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(_tableClient));
+    }
+
+    [TestMethod]
+    public async Task TestGetStoredCsvExportSchemaThrowsWhenSchemaJsonMissing()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, new CsvExportSchema(["value"]));
+            TableEntity metadata = await GetSingleMetadataEntityAsync(metadataTableClient);
+
+            // replace the entity without a SchemaJson property
+            await metadataTableClient.UpsertEntityAsync(new TableEntity(metadata.PartitionKey, metadata.RowKey), TableUpdateMode.Replace);
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    [TestMethod]
+    public async Task TestGetStoredCsvExportSchemaThrowsWhenSchemaJsonIsMalformed()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, new CsvExportSchema(["value"]));
+            TableEntity metadata = await GetSingleMetadataEntityAsync(metadataTableClient);
+
+            TableEntity corrupted = new(metadata.PartitionKey, metadata.RowKey) { ["SchemaJson"] = "not-json" };
+            await metadataTableClient.UpsertEntityAsync(corrupted, TableUpdateMode.Replace);
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    [TestMethod]
+    public async Task TestGetStoredCsvExportSchemaThrowsWhenStoredPropertiesAreInvalid()
+    {
+        TableClient metadataTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        metadataTableClient.CreateIfNotExists();
+        try
+        {
+            await _tableClient.StoreCSVExportSchemaAsync(metadataTableClient, new CsvExportSchema(["value"]));
+            TableEntity metadata = await GetSingleMetadataEntityAsync(metadataTableClient);
+
+            // "PartitionKey" is a reserved property name that CsvExportSchema rejects
+            TableEntity corrupted = new(metadata.PartitionKey, metadata.RowKey) { ["SchemaJson"] = "[\"PartitionKey\"]" };
+            await metadataTableClient.UpsertEntityAsync(corrupted, TableUpdateMode.Replace);
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _tableClient.GetStoredCSVExportSchemaAsync(metadataTableClient));
+        }
+        finally
+        {
+            metadataTableClient.Delete();
+        }
+    }
+
+    private static async Task<TableEntity> GetSingleMetadataEntityAsync(TableClient metadataTableClient)
+    {
+        await foreach (TableEntity entity in metadataTableClient.QueryAsync<TableEntity>())
+        {
+            return entity;
+        }
+
+        throw new InvalidOperationException("Expected a stored metadata entity.");
+    }
+
+    [TestMethod]
+    public void TestCsvExportSchemaValidation()
+    {
+        Assert.ThrowsException<ArgumentNullException>(() => new CsvExportSchema(null!));
+        Assert.ThrowsException<ArgumentException>(() => new CsvExportSchema(new string[] { null! }));
+        Assert.ThrowsException<ArgumentException>(() => new CsvExportSchema([" "]));
+        Assert.ThrowsException<ArgumentException>(() => new CsvExportSchema(["value", "value"]));
+        Assert.ThrowsException<ArgumentException>(() => new CsvExportSchema(["PartitionKey"]));
+        Assert.ThrowsException<ArgumentException>(() => new CsvExportSchema(["RowKey"]));
+        Assert.ThrowsException<ArgumentException>(() => new CsvExportSchema(["Timestamp"]));
+        Assert.ThrowsException<ArgumentException>(() => new CsvExportSchema(["odata.etag"]));
+    }
+
+    [TestMethod]
     public async Task TestImportFile()
     {
-        using StreamReader reader = new("test.csv");
+        TableClient sourceTableClient = _tableServiceClient.GetTableClient(RandomTableName());
+        sourceTableClient.CreateIfNotExists();
+        string sourceCsv;
+        try
+        {
+            CreateTestData(sourceTableClient);
+            sourceCsv = await ExportToStringAsync(writer => sourceTableClient.ExportCSVAsync(writer));
+        }
+        finally
+        {
+            sourceTableClient.Delete();
+        }
+
+        using StringReader reader = new(sourceCsv);
         await _tableClient.ImportCSVAsync(reader);
 
-        using StreamWriter writer = File.CreateText("output.csv");
-        await _tableClient.ExportCSVAsync(writer);
+        string outputCsv = await ExportToStringAsync(writer => _tableClient.ExportCSVAsync(writer));
 
-        using StreamReader reader1 = new("test.csv");
+        using StringReader reader1 = new(sourceCsv);
         using CsvReader csv1 = new(reader1, CultureInfo.InvariantCulture);
         csv1.Read();
         csv1.ReadHeader();
 
-        using StreamReader reader2 = new("output.csv");
+        using StringReader reader2 = new(outputCsv);
         using CsvReader csv2 = new(reader2, CultureInfo.InvariantCulture);
         csv2.Read();
         csv2.ReadHeader();
@@ -183,9 +401,17 @@ public class ExtensionTests
         return "t" + Guid.NewGuid().ToString("N");
     }
 
-    private void CreateTestData()
+    private static async Task<string> ExportToStringAsync(Func<TextWriter, Task> export)
     {
-        if (_tableClient is null)
+        using StringWriter writer = new(CultureInfo.InvariantCulture);
+        await export(writer);
+        return writer.ToString();
+    }
+
+    private void CreateTestData(TableClient? targetTableClient = null)
+    {
+        TableClient tableClient = targetTableClient ?? _tableClient;
+        if (tableClient is null)
             return;
 
         // supported property types
@@ -195,67 +421,102 @@ public class ExtensionTests
         TableEntity binaryEntity = new("partition", "01-binary");
         byte[] binary = Encoding.UTF8.GetBytes("binary");
         binaryEntity.Add("binary", binary);
-        _tableClient.AddEntity(binaryEntity);
+        tableClient.AddEntity(binaryEntity);
 
         // bool
         TableEntity boolEntity = new("partition", "02-bool")
         {
             { "bool", true }
         };
-        _tableClient.AddEntity(boolEntity);
+        tableClient.AddEntity(boolEntity);
 
         // datetime
         TableEntity dateTimeEntity = new("partition", "03-datetime");
         DateTime dateTime = new(2020, 1, 1, 1, 1, 1, DateTimeKind.Utc);
         dateTimeEntity.Add("datetime", dateTime);
-        _tableClient.AddEntity(dateTimeEntity);
+        tableClient.AddEntity(dateTimeEntity);
 
         // datetimeoffset
         TableEntity dateTimeOffsetEntity = new("partition", "04-datetimeoffset");
         DateTimeOffset dateTimeOffset = new(2020, 1, 1, 1, 1, 1, TimeSpan.FromHours(2));
         dateTimeOffsetEntity.Add("datetimeoffset", dateTimeOffset);
-        _tableClient.AddEntity(dateTimeOffsetEntity);
+        tableClient.AddEntity(dateTimeOffsetEntity);
 
         // double
         TableEntity doubleEntity = new("partition", "05-double")
         {
             { "double", 1.1 }
         };
-        _tableClient.AddEntity(doubleEntity);
+        tableClient.AddEntity(doubleEntity);
 
         // guid
         TableEntity guidEntity = new("partition", "06-guid");
         Guid guid = Guid.NewGuid();
         guidEntity.Add("guid", guid);
-        _tableClient.AddEntity(guidEntity);
+        tableClient.AddEntity(guidEntity);
 
         // int32
         TableEntity intEntity = new("partition", "07-int")
         {
             { "int", 1 }
         };
-        _tableClient.AddEntity(intEntity);
+        tableClient.AddEntity(intEntity);
 
         // int64
         TableEntity longEntity = new("partition", "08-long")
         {
             { "long", 1L }
         };
-        _tableClient.AddEntity(longEntity);
+        tableClient.AddEntity(longEntity);
 
         // special chars
         TableEntity specialCharsEntity = new("partition", "09-specialChars")
         {
             { "specialChars", specialChars }
         };
-        _tableClient.AddEntity(specialCharsEntity);
+        tableClient.AddEntity(specialCharsEntity);
 
         // quotes
         TableEntity quotesEntity = new("partition", "10-quotes")
         {
             { "quotes",  "string with \"quotes\""}
         };
-        _tableClient.AddEntity(quotesEntity);
+        tableClient.AddEntity(quotesEntity);
+    }
+
+    private sealed class MutatingStringWriter(Action mutation) : StringWriter
+    {
+        private Action? _mutation = mutation;
+
+        public override void Write(char value)
+        {
+            Mutate();
+            base.Write(value);
+        }
+
+        public override void Write(string? value)
+        {
+            Mutate();
+            base.Write(value);
+        }
+
+        public override void Write(char[] buffer, int index, int count)
+        {
+            Mutate();
+            base.Write(buffer, index, count);
+        }
+
+        public override void Write(ReadOnlySpan<char> buffer)
+        {
+            Mutate();
+            base.Write(buffer);
+        }
+
+        private void Mutate()
+        {
+            Action? mutation = Interlocked.Exchange(ref _mutation, null);
+            mutation?.Invoke();
+        }
     }
 
     [TestCleanup]
