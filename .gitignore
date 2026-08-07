@@ -351,3 +351,6 @@ MigrationBackup/
 
 /.azurite
 /src/.azurite
+__azurite_*
+AzuriteConfig
+__blobstorage__/*
