@@ -1,9 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-  <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Packages.props, $(MSBuildThisFileDirectory)..))" />
-  <ItemGroup>
-    <PackageVersion Include="Medienstudio.Azure.Data.Tables.Extensions" Version="1.5.0" />
-  </ItemGroup>
-</Project>
