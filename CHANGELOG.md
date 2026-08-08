@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
  
+## [2.0.0] - 2026-08-08
+
+### Added
+- CSV export schema support.
+- DI-friendly logging for CSV and table operations.
+
+### Changed
+- Updated dependencies to their latest stable versions.
+- Optimized table extension batching and fixed filter escaping.
+- Switched release automation to [release-please](https://github.com/googleapis/release-please) for version bumping and changelog generation.
+- Fixed CI to run reliably against Azurite (`--skipApiVersionCheck`).
+
+### Fixed
+- Fixed CSV round-trip values.
+- CSV import duplicate-column detection now actually throws instead of silently succeeding.
+- Invalid `Timestamp` values encountered during CSV import are now logged and wrapped instead of failing ungracefully.
+
+### Security
+- Removed PartitionKey values from log messages to avoid potential PII exposure.
+
+## [1.5.0] - 2025-11-23
+
+### Changed
+- Migrated the solution to .NET 10 (SDK, build, and publish workflows).
+- Updated CsvHelper and Tables.Extensions package versions.
+- Enhanced test project dependencies.
+- Added documentation to helper classes.
+
+## [1.4.2] - 2025-11-23
+
+### Changed
+- Updated CSV package dependencies.
+- General project cleanup.
+
+## [1.4.1] - 2025-04-02
+
+### Changed
+- Minor CSV package project cleanup and dependency reference update.
+
 ## [1.4.0] - 2025-04-02
   
   Dependencies updated for libraries and test projects.
