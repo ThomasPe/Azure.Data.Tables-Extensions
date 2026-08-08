@@ -398,6 +398,19 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public async Task TestExportWithLoggingUsesDedicatedMethod()
+    {
+        using StringWriter writer = new(CultureInfo.InvariantCulture);
+        TestLogger logger = new();
+
+        await _tableClient.ExportCSVWithLoggingAsync(writer, logger);
+
+        string informationLogs = string.Join(Environment.NewLine, logger.Entries.Where(entry => entry.Level == LogLevel.Information).Select(entry => entry.Message));
+        Assert.IsTrue(informationLogs.Contains("Starting CSV export", StringComparison.Ordinal));
+        Assert.IsTrue(informationLogs.Contains("Completed CSV export", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public async Task TestImportTypeCoercionFailureLogsActionableContext()
     {
         const string csvContent = "PartitionKey,RowKey,value,value@type\r\npartition,row-1,not-an-int,Int32\r\n";
@@ -414,6 +427,21 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public async Task TestImportDuplicateColumnLogsColumnError()
+    {
+        const string csvContent = "PartitionKey,RowKey,value,value@type,value,value@type\r\npartition,row-1,first,String,second,String\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("column 'value'", StringComparison.Ordinal));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(entry => entry.Level == LogLevel.Warning).Select(entry => entry.Message));
+        Assert.IsTrue(warningLog.Contains("invalid column value", StringComparison.Ordinal));
+        Assert.IsFalse(warningLog.Contains("type coercion error", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public async Task TestImportMissingHeaderLogsWarning()
     {
         const string csvContent = "PartitionKey,RowKey\r\npartition,row-1,unexpected-extra-field\r\n";
@@ -425,6 +453,20 @@ public class ExtensionTests
 
         string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Warning).Select(x => x.Message));
         Assert.IsTrue(warningLog.Contains("missing header", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public async Task TestImportDoesNotEmitTableOperationLifecycleLogs()
+    {
+        const string csvContent = "PartitionKey,RowKey\r\npartition,row-1\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        await _tableClient.ImportCSVAsync(reader, logger);
+
+        string informationLogs = string.Join(Environment.NewLine, logger.Entries.Where(entry => entry.Level == LogLevel.Information).Select(entry => entry.Message));
+        Assert.IsFalse(informationLogs.Contains("Adding entities", StringComparison.Ordinal));
+        Assert.IsFalse(informationLogs.Contains("Starting batched table transaction", StringComparison.Ordinal));
     }
 
     private static string RandomTableName()

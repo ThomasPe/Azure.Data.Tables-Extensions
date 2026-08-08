@@ -87,7 +87,7 @@ await _tableClient.ImportCSVAsync(reader);
 
 // Optional: pass ILogger / ILogger<T> for structured operational logs
 ILogger logger = loggerFactory.CreateLogger("TablesCsv");
-await _tableClient.ExportCSVAsync(writer, logger);
+await _tableClient.ExportCSVWithLoggingAsync(writer, logger);
 await _tableClient.ImportCSVAsync(reader, logger);
 ```
 
@@ -99,7 +99,7 @@ public class TableBackupService(TableClient tableClient, ILogger<TableBackupServ
     public async Task BackupAsync(string path)
     {
         using StreamWriter writer = File.CreateText(path);
-        await tableClient.ExportCSVAsync(writer, logger);
+        await tableClient.ExportCSVWithLoggingAsync(writer, logger);
     }
 
     public async Task RestoreAsync(string path)

@@ -54,14 +54,15 @@ public static class Extensions
         foreach (IGrouping<string, T> group in groups)
         {
             partitionCount++;
-            List<TableTransactionAction> actions;
-            IEnumerable<T> items = group.AsEnumerable();
-            while (items.Any())
+            List<T> partitionEntities = [.. group];
+            for (int startIndex = 0; startIndex < partitionEntities.Count; startIndex += 100)
             {
-                IEnumerable<T> batch = items.Take(100);
-                items = items.Skip(100);
-
-                actions = [.. batch.Select(e => new TableTransactionAction(tableTransactionActionType, e))];
+                int batchEntityCount = Math.Min(100, partitionEntities.Count - startIndex);
+                List<TableTransactionAction> actions = new(batchEntityCount);
+                for (int index = 0; index < batchEntityCount; index++)
+                {
+                    actions.Add(new TableTransactionAction(tableTransactionActionType, partitionEntities[startIndex + index]));
+                }
                 int batchCount = actions.Count;
                 logger.LogDebug(LogEvents.BatchSubmitted, "Submitting table transaction batch for partition {PartitionKey} containing {BatchEntityCount} entities.", group.Key, batchCount);
                 Response<IReadOnlyList<Response>> response = await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);

@@ -37,6 +37,7 @@ public static class Extensions
         public static readonly EventId CsvImportMissingHeader = new(2023, nameof(CsvImportMissingHeader));
         public static readonly EventId CsvImportTypeCoercionFailed = new(2024, nameof(CsvImportTypeCoercionFailed));
         public static readonly EventId CsvImportCompleted = new(2025, nameof(CsvImportCompleted));
+        public static readonly EventId CsvImportInvalidColumn = new(2026, nameof(CsvImportInvalidColumn));
         public static readonly EventId CsvStoredSchemaRetrieved = new(2030, nameof(CsvStoredSchemaRetrieved));
         public static readonly EventId CsvStoredSchemaStored = new(2031, nameof(CsvStoredSchemaStored));
     }
@@ -50,7 +51,7 @@ public static class Extensions
     /// <returns>Task<void></void></returns>
     public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer)
     {
-        await ExportCSVAsync(tableClient, writer, NullLogger).ConfigureAwait(false);
+        await ExportCSVWithLoggingAsync(tableClient, writer, NullLogger).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -60,7 +61,7 @@ public static class Extensions
     /// <param name="writer">TextWriter instance that takes the serialized result</param>
     /// <param name="logger">Optional logger.</param>
     /// <returns>Task<void></void></returns>
-    public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer, ILogger? logger)
+    public static async Task ExportCSVWithLoggingAsync(this TableClient tableClient, TextWriter writer, ILogger? logger)
     {
         logger ??= NullLogger;
         CsvExportSchema schema = await tableClient.GetCSVExportSchemaAsync(logger).ConfigureAwait(false);
@@ -500,15 +501,25 @@ public static class Extensions
                     string? type = csv.GetField<string>(label + "@type")?.Split('@')[0];
                     if (!string.IsNullOrEmpty(field) || type is "String" or "Binary")
                     {
+                        object value;
                         try
                         {
-                            object value = CoerceType(type, field ?? string.Empty);
-                            entity.Add(label, value);
+                            value = CoerceType(type, field ?? string.Empty);
                         }
-                        catch (Exception ex) when (ex is FormatException or InvalidOperationException or OverflowException or ArgumentException)
+                        catch (Exception ex) when (ex is FormatException or InvalidOperationException or OverflowException)
                         {
                             logger.LogWarning(LogEvents.CsvImportTypeCoercionFailed, ex, "CSV import failed for table {TableName}: type coercion error at row {RowIndex}, column {ColumnName}, declared type {DeclaredType}.", tableClient.Name, rowIndex, label, type ?? "String");
                             throw new InvalidDataException($"CSV import failed at row {rowIndex}, column '{label}', declared type '{type ?? "String"}'.", ex);
+                        }
+
+                        try
+                        {
+                            entity.Add(label, value);
+                        }
+                        catch (ArgumentException ex)
+                        {
+                            logger.LogWarning(LogEvents.CsvImportInvalidColumn, ex, "CSV import failed for table {TableName}: invalid column {ColumnName} at row {RowIndex}.", tableClient.Name, label, rowIndex);
+                            throw new InvalidDataException($"CSV import failed at row {rowIndex}, column '{label}'.", ex);
                         }
                     }
                 }
@@ -520,7 +531,7 @@ public static class Extensions
             if (batchCounter == 100)
             {
                 logger.LogDebug(LogEvents.CsvImportBatchSubmitting, "Submitting CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
-                await tableClient.AddEntitiesAsync(entities, TableTransactionActionType.Add, logger).ConfigureAwait(false);
+                await SubmitImportBatchAsync(tableClient, entities).ConfigureAwait(false);
                 logger.LogDebug(LogEvents.CsvImportBatchSubmitted, "Submitted CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
                 importedCount += entities.Count;
                 entities = [];
@@ -530,12 +541,21 @@ public static class Extensions
         if (entities.Count > 0)
         {
             logger.LogDebug(LogEvents.CsvImportBatchSubmitting, "Submitting final CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
-            await tableClient.AddEntitiesAsync(entities, TableTransactionActionType.Add, logger).ConfigureAwait(false);
+            await SubmitImportBatchAsync(tableClient, entities).ConfigureAwait(false);
             logger.LogDebug(LogEvents.CsvImportBatchSubmitted, "Submitted final CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
             importedCount += entities.Count;
         }
         stopwatch.Stop();
         logger.LogInformation(LogEvents.CsvImportCompleted, "Completed CSV import for table {TableName}. Rows imported: {ImportedCount}, durationMs: {DurationMs}.", tableClient.Name, importedCount, stopwatch.ElapsedMilliseconds);
+    }
+
+    private static async Task SubmitImportBatchAsync(TableClient tableClient, List<TableEntity> entities)
+    {
+        foreach (IGrouping<string, TableEntity> partition in entities.GroupBy(entity => entity.PartitionKey))
+        {
+            List<TableTransactionAction> actions = [.. partition.Select(entity => new TableTransactionAction(TableTransactionActionType.Add, entity))];
+            await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
+        }
     }
 
     private static object CoerceType(string? type, string field)
