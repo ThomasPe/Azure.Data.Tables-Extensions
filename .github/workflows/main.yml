@@ -71,8 +71,8 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   publish:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch' }}
+    needs: [build, release-please]
+    if: ${{ always() && needs.build.result == 'success' && (needs.release-please.outputs.release_created == 'true' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
