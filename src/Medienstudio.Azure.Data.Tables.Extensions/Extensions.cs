@@ -228,7 +228,7 @@ public static class Extensions
     public static async Task<int> CountEntitiesAsync(this TableClient tableClient, string? partitionKey = null)
     {
         ArgumentNullException.ThrowIfNull(tableClient);
-        string? filter = partitionKey is null ? null : $"PartitionKey eq '{partitionKey.Replace("'", "''")}'";
+        string? filter = partitionKey is null ? null : TableClient.CreateQueryFilter($"PartitionKey eq {partitionKey}");
         IAsyncEnumerable<Page<TableEntity>> pages = tableClient
             .QueryAsync<TableEntity>(filter: filter, select: ["PartitionKey"], maxPerPage: 1000)
             .AsPages();

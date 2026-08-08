@@ -193,6 +193,18 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public async Task GetAllEntitiesStartingWithApostropheTest()
+    {
+        _tableClient.UpsertEntity(new TableEntity("quote'", "first"));
+        _tableClient.UpsertEntity(new TableEntity("quote'prefix", "second"));
+        _tableClient.UpsertEntity(new TableEntity("quotez", "third"));
+
+        List<TableEntity> entities = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "quote'");
+
+        Assert.AreEqual(2, entities.Count);
+    }
+
+    [TestMethod]
     public async Task TestEntitiesCount()
     {
         CreateTestData();
@@ -201,6 +213,10 @@ public class ExtensionTests
 
         int count2 = await _tableClient.CountEntitiesAsync(partitionKey: "123");
         Assert.AreEqual(3000, count2);
+
+        _tableClient.UpsertEntity(new TableEntity("quote'", "count"));
+        int count3 = await _tableClient.CountEntitiesAsync(partitionKey: "quote'");
+        Assert.AreEqual(1, count3);
     }
 
     [TestCleanup]

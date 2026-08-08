@@ -53,20 +53,21 @@ public static class Helpers
         ArgumentNullException.ThrowIfNull(column);
         ArgumentNullException.ThrowIfNull(prefix);
 
-        string escapedPrefix = prefix.Replace("'", "''");
-        if (escapedPrefix.Length == 0)
+        if (prefix.Length == 0)
         {
             return $"{column} ge ''";
         }
 
-        char lastChar = escapedPrefix[^1];
+        string escapedPrefix = prefix.Replace("'", "''");
+        char lastChar = prefix[^1];
         if (lastChar == char.MaxValue)
         {
             return $"{column} ge '{escapedPrefix}'";
         }
 
         char nextChar = (char)(lastChar + 1);
-        string prefixNext = escapedPrefix[..^1] + nextChar;
-        return $"{column} ge '{escapedPrefix}' and {column} lt '{prefixNext}'";
+        string prefixNext = prefix[..^1] + nextChar;
+        string escapedPrefixNext = prefixNext.Replace("'", "''");
+        return $"{column} ge '{escapedPrefix}' and {column} lt '{escapedPrefixNext}'";
     }
 }

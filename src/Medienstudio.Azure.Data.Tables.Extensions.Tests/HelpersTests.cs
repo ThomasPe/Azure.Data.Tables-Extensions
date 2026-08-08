@@ -53,6 +53,9 @@ public class HelpersTests
         filter = Helpers.StartsWith("column", "prefix-");
         Assert.AreEqual("column ge 'prefix-' and column lt 'prefix.'", filter);
 
+        filter = Helpers.StartsWith("column", "prefix'");
+        Assert.AreEqual("column ge 'prefix''' and column lt 'prefix('", filter);
+
         string prefix = "prefix" + char.MaxValue;
         filter = Helpers.StartsWith("column", prefix);
         Assert.AreEqual("column ge '" + prefix + "'", filter);
