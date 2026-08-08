@@ -1,7 +1,12 @@
 ﻿using Azure.Data.Tables;
+using Azure.Data.Tables.Models;
 using CsvHelper;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Medienstudio.Azure.Data.Tables.Extensions;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -19,6 +24,22 @@ public static class Extensions
     const string SOURCE_TABLE_URI_PROPERTY = "SourceTableUri";
     const int MAX_TABLE_STRING_PROPERTY_SIZE = 64 * 1024;
     static readonly string[] SYSTEM_PROPERTIES = ["PartitionKey", "RowKey", "Timestamp"];
+    private static readonly ILogger NullLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+
+    private static class LogEvents
+    {
+        public static readonly EventId CsvExportStarted = new(2000, nameof(CsvExportStarted));
+        public static readonly EventId CsvExportCompleted = new(2001, nameof(CsvExportCompleted));
+        public static readonly EventId CsvSchemaDiscoveryCompleted = new(2010, nameof(CsvSchemaDiscoveryCompleted));
+        public static readonly EventId CsvImportStarted = new(2020, nameof(CsvImportStarted));
+        public static readonly EventId CsvImportBatchSubmitting = new(2021, nameof(CsvImportBatchSubmitting));
+        public static readonly EventId CsvImportBatchSubmitted = new(2022, nameof(CsvImportBatchSubmitted));
+        public static readonly EventId CsvImportMissingHeader = new(2023, nameof(CsvImportMissingHeader));
+        public static readonly EventId CsvImportTypeCoercionFailed = new(2024, nameof(CsvImportTypeCoercionFailed));
+        public static readonly EventId CsvImportCompleted = new(2025, nameof(CsvImportCompleted));
+        public static readonly EventId CsvStoredSchemaRetrieved = new(2030, nameof(CsvStoredSchemaRetrieved));
+        public static readonly EventId CsvStoredSchemaStored = new(2031, nameof(CsvStoredSchemaStored));
+    }
 
 
     /// <summary>
@@ -29,8 +50,21 @@ public static class Extensions
     /// <returns>Task<void></void></returns>
     public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer)
     {
-        CsvExportSchema schema = await tableClient.GetCSVExportSchemaAsync();
-        await tableClient.ExportCSVAsync(writer, schema);
+        await ExportCSVAsync(tableClient, writer, NullLogger).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns all rows in the table as CSV to the provided writer with logging support.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="writer">TextWriter instance that takes the serialized result</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <returns>Task<void></void></returns>
+    public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer, ILogger? logger)
+    {
+        logger ??= NullLogger;
+        CsvExportSchema schema = await tableClient.GetCSVExportSchemaAsync(logger).ConfigureAwait(false);
+        await tableClient.ExportCSVAsync(writer, schema, logger).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -40,13 +74,29 @@ public static class Extensions
     /// <returns>The non-system properties in the order they are first encountered.</returns>
     public static async Task<CsvExportSchema> GetCSVExportSchemaAsync(this TableClient tableClient)
     {
+        return await GetCSVExportSchemaAsync(tableClient, NullLogger).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns the CSV export schema discovered from all entities in the table with logging support.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <returns>The non-system properties in the order they are first encountered.</returns>
+    public static async Task<CsvExportSchema> GetCSVExportSchemaAsync(this TableClient tableClient, ILogger? logger)
+    {
+        logger ??= NullLogger;
         HashSet<string> knownProperties = new(StringComparer.Ordinal);
         List<string> properties = [];
+        int rowsScanned = 0;
 
         await foreach (TableEntity row in tableClient.QueryAsync<TableEntity>())
         {
+            rowsScanned++;
             AddProperties(row, knownProperties, properties);
         }
+
+        logger.LogInformation(LogEvents.CsvSchemaDiscoveryCompleted, "Discovered CSV export schema for table {TableName}. Rows scanned: {RowsScanned}, properties discovered: {PropertyCount}.", tableClient.Name, rowsScanned, properties.Count);
 
         return new CsvExportSchema(properties);
     }
@@ -60,11 +110,26 @@ public static class Extensions
     /// <exception cref="InvalidOperationException">The metadata table is the source table, or the stored schema is invalid.</exception>
     public static async Task<CsvExportSchema?> GetStoredCSVExportSchemaAsync(this TableClient tableClient, TableClient metadataTableClient)
     {
+        return await GetStoredCSVExportSchemaAsync(tableClient, metadataTableClient, NullLogger).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets a previously stored CSV export schema for this table with logging support.
+    /// </summary>
+    /// <param name="tableClient">The source table.</param>
+    /// <param name="metadataTableClient">A separate table that stores CSV export schemas.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <returns>The stored schema, or <see langword="null"/> when no schema has been stored.</returns>
+    /// <exception cref="InvalidOperationException">The metadata table is the source table, or the stored schema is invalid.</exception>
+    public static async Task<CsvExportSchema?> GetStoredCSVExportSchemaAsync(this TableClient tableClient, TableClient metadataTableClient, ILogger? logger)
+    {
+        logger ??= NullLogger;
         EnsureSeparateMetadataTable(tableClient, metadataTableClient);
 
         global::Azure.NullableResponse<TableEntity> response = await metadataTableClient.GetEntityIfExistsAsync<TableEntity>(GetSchemaPartitionKey(tableClient), SCHEMA_ROW_KEY);
         if (!response.HasValue)
         {
+            logger.LogInformation(LogEvents.CsvStoredSchemaRetrieved, "No stored CSV export schema found for table {TableName}.", tableClient.Name);
             return null;
         }
 
@@ -78,9 +143,11 @@ public static class Extensions
         try
         {
             string[]? properties = JsonSerializer.Deserialize<string[]>(schemaJson);
-            return properties is null
+            CsvExportSchema result = properties is null
                 ? throw new InvalidOperationException("The stored CSV export schema has an invalid property list.")
                 : new CsvExportSchema(properties);
+            logger.LogInformation(LogEvents.CsvStoredSchemaRetrieved, "Retrieved stored CSV export schema for table {TableName}. Property count: {PropertyCount}.", tableClient.Name, result.Properties.Count);
+            return result;
         }
         catch (JsonException exception)
         {
@@ -103,6 +170,22 @@ public static class Extensions
     /// <exception cref="InvalidOperationException">The metadata table is the source table.</exception>
     public static async Task StoreCSVExportSchemaAsync(this TableClient tableClient, TableClient metadataTableClient, CsvExportSchema schema)
     {
+        await StoreCSVExportSchemaAsync(tableClient, metadataTableClient, schema, NullLogger).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Stores a CSV export schema for this table with logging support.
+    /// </summary>
+    /// <param name="tableClient">The source table.</param>
+    /// <param name="metadataTableClient">A separate table that stores CSV export schemas.</param>
+    /// <param name="schema">The schema to store.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <returns>A task that represents the asynchronous store operation.</returns>
+    /// <exception cref="ArgumentException">The serialized schema exceeds the Azure Table Storage string property limit.</exception>
+    /// <exception cref="InvalidOperationException">The metadata table is the source table.</exception>
+    public static async Task StoreCSVExportSchemaAsync(this TableClient tableClient, TableClient metadataTableClient, CsvExportSchema schema, ILogger? logger)
+    {
+        logger ??= NullLogger;
         EnsureSeparateMetadataTable(tableClient, metadataTableClient);
         ArgumentNullException.ThrowIfNull(schema);
 
@@ -119,6 +202,7 @@ public static class Extensions
         };
 
         await metadataTableClient.UpsertEntityAsync(entity, TableUpdateMode.Replace);
+        logger.LogInformation(LogEvents.CsvStoredSchemaStored, "Stored CSV export schema for table {TableName}. Property count: {PropertyCount}.", tableClient.Name, schema.Properties.Count);
     }
 
     /// <summary>
@@ -130,6 +214,21 @@ public static class Extensions
     /// <remarks>Use this method only when the table fits comfortably in memory. It queries the table once and buffers every entity before writing.</remarks>
     public static async Task ExportCSVInMemoryAsync(this TableClient tableClient, TextWriter writer)
     {
+        await ExportCSVInMemoryAsync(tableClient, writer, NullLogger).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns all rows in the table as CSV to the provided writer after buffering them in memory with logging support.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="writer">TextWriter instance that takes the serialized result</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <returns>Task<void></void></returns>
+    /// <remarks>Use this method only when the table fits comfortably in memory. It queries the table once and buffers every entity before writing.</remarks>
+    public static async Task ExportCSVInMemoryAsync(this TableClient tableClient, TextWriter writer, ILogger? logger)
+    {
+        logger ??= NullLogger;
+        Stopwatch stopwatch = Stopwatch.StartNew();
         List<TableEntity> rows = [];
         await foreach (TableEntity row in tableClient.QueryAsync<TableEntity>())
         {
@@ -138,6 +237,8 @@ public static class Extensions
 
         CsvExportSchema schema = CreateCSVExportSchema(rows);
         WriteCSV(writer, schema, rows);
+        stopwatch.Stop();
+        logger.LogInformation(LogEvents.CsvExportCompleted, "Completed in-memory CSV export for table {TableName}. Rows exported: {RowCount}, schema properties: {PropertyCount}, durationMs: {DurationMs}.", tableClient.Name, rows.Count, schema.Properties.Count, stopwatch.ElapsedMilliseconds);
     }
 
     /// <summary>
@@ -150,9 +251,28 @@ public static class Extensions
     /// <exception cref="InvalidOperationException">An entity contains a property that is absent from <paramref name="schema"/>.</exception>
     public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer, CsvExportSchema schema)
     {
+        await ExportCSVAsync(tableClient, writer, schema, NullLogger).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns all rows in the table as CSV to the provided writer using the supplied schema and logging support.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="writer">TextWriter instance that takes the serialized result</param>
+    /// <param name="schema">The non-system properties to include in the CSV export.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <returns>Task<void></void></returns>
+    /// <exception cref="InvalidOperationException">An entity contains a property that is absent from <paramref name="schema"/>.</exception>
+    public static async Task ExportCSVAsync(this TableClient tableClient, TextWriter writer, CsvExportSchema schema, ILogger? logger)
+    {
+        logger ??= NullLogger;
         ArgumentNullException.ThrowIfNull(schema);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        logger.LogInformation(LogEvents.CsvExportStarted, "Starting CSV export for table {TableName}. Schema properties: {PropertyCount}.", tableClient.Name, schema.Properties.Count);
+
         List<string> keys = CreateCSVKeys(schema);
         HashSet<string> schemaProperties = schema.Properties.ToHashSet(StringComparer.Ordinal);
+        int rowsWritten = 0;
 
         using CsvWriter csv = CreateCSVWriter(writer);
         WriteCSVHeader(csv, keys);
@@ -160,9 +280,12 @@ public static class Extensions
         await foreach (TableEntity row in tableClient.QueryAsync<TableEntity>())
         {
             WriteCSVRow(csv, keys, schemaProperties, row);
+            rowsWritten++;
         }
 
         csv.Flush();
+        stopwatch.Stop();
+        logger.LogInformation(LogEvents.CsvExportCompleted, "Completed CSV export for table {TableName}. Rows exported: {RowCount}, schema properties: {PropertyCount}, durationMs: {DurationMs}.", tableClient.Name, rowsWritten, schema.Properties.Count, stopwatch.ElapsedMilliseconds);
     }
 
     private static CsvExportSchema CreateCSVExportSchema(IEnumerable<TableEntity> rows)
@@ -311,25 +434,45 @@ public static class Extensions
     /// <returns></returns>
     public static async Task ImportCSVAsync(this TableClient tableClient, TextReader reader)
     {
+        await ImportCSVAsync(tableClient, reader, NullLogger).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Imports a CSV read stream to Table Storage with logging support.
+    /// </summary>
+    /// <param name="tableClient">The authenticated TableClient</param>
+    /// <param name="reader">TextReader instance providing access to the CSV</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <returns></returns>
+    public static async Task ImportCSVAsync(this TableClient tableClient, TextReader reader, ILogger? logger)
+    {
+        logger ??= NullLogger;
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        logger.LogInformation(LogEvents.CsvImportStarted, "Starting CSV import for table {TableName}.", tableClient.Name);
+
         using CsvReader csv = new(reader, CultureInfo.InvariantCulture);
         csv.Read();
         csv.ReadHeader();
         List<TableEntity> entities = [];
         int batchCounter = 0;
+        int rowIndex = 1;
+        int importedCount = 0;
 
         while (csv.Read())
         {
+            rowIndex++;
             batchCounter++;
             // loop through fields while index is not out of bounds
             TableEntity entity = [];
             int i = 0;
             while (csv.TryGetField(i, out string? field))
             {
-                string? label = csv.HeaderRecord?[i];
-                if (label == null)
+                if (csv.HeaderRecord is null || i >= csv.HeaderRecord.Length || string.IsNullOrEmpty(csv.HeaderRecord[i]))
                 {
-                    return;
+                    logger.LogWarning(LogEvents.CsvImportMissingHeader, "CSV import failed for table {TableName}: missing header at row {RowIndex}, column index {ColumnIndex}.", tableClient.Name, rowIndex, i);
+                    throw new InvalidDataException($"CSV import failed because the header for column index {i} is missing at row {rowIndex}.");
                 }
+                string label = csv.HeaderRecord[i];
 
                 if (SYSTEM_PROPERTIES.Contains(label))
                 {
@@ -357,8 +500,16 @@ public static class Extensions
                     string? type = csv.GetField<string>(label + "@type")?.Split('@')[0];
                     if (!string.IsNullOrEmpty(field) || type is "String" or "Binary")
                     {
-                        object value = CoerceType(type, field ?? string.Empty);
-                        entity.Add(label, value);
+                        try
+                        {
+                            object value = CoerceType(type, field ?? string.Empty);
+                            entity.Add(label, value);
+                        }
+                        catch (Exception ex) when (ex is FormatException or InvalidOperationException or OverflowException or ArgumentException)
+                        {
+                            logger.LogWarning(LogEvents.CsvImportTypeCoercionFailed, ex, "CSV import failed for table {TableName}: type coercion error at row {RowIndex}, column {ColumnName}, declared type {DeclaredType}.", tableClient.Name, rowIndex, label, type ?? "String");
+                            throw new InvalidDataException($"CSV import failed at row {rowIndex}, column '{label}', declared type '{type ?? "String"}'.", ex);
+                        }
                     }
                 }
 
@@ -368,15 +519,23 @@ public static class Extensions
 
             if (batchCounter == 100)
             {
-                await tableClient.AddEntitiesAsync(entities);
+                logger.LogDebug(LogEvents.CsvImportBatchSubmitting, "Submitting CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
+                await tableClient.AddEntitiesAsync(entities, TableTransactionActionType.Add, logger).ConfigureAwait(false);
+                logger.LogDebug(LogEvents.CsvImportBatchSubmitted, "Submitted CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
+                importedCount += entities.Count;
                 entities = [];
                 batchCounter = 0;
             }
         }
         if (entities.Count > 0)
         {
-            await tableClient.AddEntitiesAsync(entities);
+            logger.LogDebug(LogEvents.CsvImportBatchSubmitting, "Submitting final CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
+            await tableClient.AddEntitiesAsync(entities, TableTransactionActionType.Add, logger).ConfigureAwait(false);
+            logger.LogDebug(LogEvents.CsvImportBatchSubmitted, "Submitted final CSV import batch for table {TableName}. Batch entity count: {BatchEntityCount}.", tableClient.Name, entities.Count);
+            importedCount += entities.Count;
         }
+        stopwatch.Stop();
+        logger.LogInformation(LogEvents.CsvImportCompleted, "Completed CSV import for table {TableName}. Rows imported: {ImportedCount}, durationMs: {DurationMs}.", tableClient.Name, importedCount, stopwatch.ElapsedMilliseconds);
     }
 
     private static object CoerceType(string? type, string field)

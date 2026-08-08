@@ -2,6 +2,7 @@ using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using CsvHelper;
+using Microsoft.Extensions.Logging;
 using Medienstudio.Azure.Data.Tables.Extensions;
 using System.Globalization;
 using System.Text;
@@ -396,6 +397,36 @@ public class ExtensionTests
         Assert.IsFalse(entity.ContainsKey("emptyInt32"));
     }
 
+    [TestMethod]
+    public async Task TestImportTypeCoercionFailureLogsActionableContext()
+    {
+        const string csvContent = "PartitionKey,RowKey,value,value@type\r\npartition,row-1,not-an-int,Int32\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("row 2", StringComparison.Ordinal));
+        Assert.IsTrue(exception.Message.Contains("column 'value'", StringComparison.Ordinal));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Warning).Select(x => x.Message));
+        Assert.IsTrue(warningLog.Contains("type coercion error", StringComparison.Ordinal));
+        Assert.IsTrue(warningLog.Contains("declared type Int32", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task TestImportMissingHeaderLogsWarning()
+    {
+        const string csvContent = "PartitionKey,RowKey\r\npartition,row-1,unexpected-extra-field\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("header", StringComparison.OrdinalIgnoreCase));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Warning).Select(x => x.Message));
+        Assert.IsTrue(warningLog.Contains("missing header", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static string RandomTableName()
     {
         return "t" + Guid.NewGuid().ToString("N");
@@ -516,6 +547,28 @@ public class ExtensionTests
         {
             Action? mutation = Interlocked.Exchange(ref _mutation, null);
             mutation?.Invoke();
+        }
+    }
+
+    private sealed class TestLogger : ILogger
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        private static readonly IDisposable Scope = new NoopDisposable();
+
+        IDisposable ILogger.BeginScope<TState>(TState state) => Scope;
+
+        bool ILogger.IsEnabled(LogLevel logLevel) => true;
+
+        void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
+    }
+
+    private sealed class NoopDisposable : IDisposable
+    {
+        public void Dispose()
+        {
         }
     }
 
