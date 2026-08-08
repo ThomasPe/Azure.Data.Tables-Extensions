@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-Instructions for Claude Code (and other coding agents) working in this repository.
+Instructions for AI coding agents working in this repository.
 
 ## Release process — read before touching version/changelog files
 
