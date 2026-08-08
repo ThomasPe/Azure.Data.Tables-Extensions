@@ -13,7 +13,7 @@ If you use this code for backups, please test both export and import functionali
 
 [![Nuget](https://img.shields.io/nuget/v/Medienstudio.Azure.Data.Tables.CSV?label=Medienstudio.Azure.Data.Tables.CSV%20on%20NuGet)](https://www.nuget.org/packages/Medienstudio.Azure.Data.Tables.CSV/)
 
-Releases are created from the GitHub Actions workflow on `main`, tagged with the next semver version, and then published to NuGet for both packages together.
+Releases are managed by [release-please](https://github.com/googleapis/release-please): pushes to `main` update a release pull request with the next semver version (derived from [Conventional Commits](https://www.conventionalcommits.org/)) and changelog; merging that PR tags the release and publishes both packages to NuGet.
 
 ## Querying
 
