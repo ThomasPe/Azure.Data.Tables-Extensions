@@ -460,6 +460,28 @@ public static class Extensions
         int rowIndex = 1;
         int importedCount = 0;
 
+        // Validate once, covering every column including PartitionKey/RowKey/Timestamp and @type
+        // columns — the per-row duplicate check further down only covers non-system properties,
+        // since system properties are set via direct property assignment rather than entity.Add.
+        if (csv.HeaderRecord is not null)
+        {
+            HashSet<string> seenHeaders = new(StringComparer.Ordinal);
+            foreach (string header in csv.HeaderRecord)
+            {
+                if (string.IsNullOrEmpty(header))
+                {
+                    continue;
+                }
+
+                if (!seenHeaders.Add(header))
+                {
+                    ArgumentException ex = new($"An item with the same key has already been added. Key: {header}", nameof(header));
+                    logger.LogWarning(LogEvents.CsvImportInvalidColumn, ex, "CSV import failed for table {TableName}: invalid column {ColumnName} at row {RowIndex}.", tableClient.Name, header, rowIndex);
+                    throw new InvalidDataException($"CSV import failed at row {rowIndex}, column '{header}'.", ex);
+                }
+            }
+        }
+
         while (csv.Read())
         {
             rowIndex++;
@@ -525,12 +547,12 @@ public static class Extensions
                         {
                             // TableEntity.Add does not throw on a duplicate key (unlike Dictionary<TKey,TValue>.Add) —
                             // it silently overwrites, so a duplicate CSV column header would otherwise pass silently.
-                            if (entity.ContainsKey(label))
+                            // Unreachable in practice once the header-level duplicate check above has run, but kept
+                            // as a single-lookup (TryAdd, not ContainsKey+Add) safety net.
+                            if (!entity.TryAdd(label, value))
                             {
                                 throw new ArgumentException($"An item with the same key has already been added. Key: {label}", nameof(label));
                             }
-
-                            entity.Add(label, value);
                         }
                         catch (ArgumentException ex)
                         {
