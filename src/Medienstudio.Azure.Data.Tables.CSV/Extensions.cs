@@ -521,15 +521,13 @@ public static class Extensions
                             throw new InvalidDataException($"CSV import failed at row {rowIndex}, column '{label}', declared type '{type ?? "String"}'.", ex);
                         }
 
-                        try
+                        if (entity.ContainsKey(label))
                         {
-                            entity.Add(label, value);
-                        }
-                        catch (ArgumentException ex)
-                        {
+                            ArgumentException ex = new($"An item with the same key has already been added. Key: {label}", nameof(label));
                             logger.LogWarning(LogEvents.CsvImportInvalidColumn, ex, "CSV import failed for table {TableName}: invalid column {ColumnName} at row {RowIndex}.", tableClient.Name, label, rowIndex);
                             throw new InvalidDataException($"CSV import failed at row {rowIndex}, column '{label}'.", ex);
                         }
+                        entity.Add(label, value);
                     }
                 }
 
