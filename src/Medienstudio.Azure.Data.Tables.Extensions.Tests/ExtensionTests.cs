@@ -182,6 +182,15 @@ public class ExtensionTests
         Assert.AreEqual(1, entities2.Count);
     }
 
+    [TestMethod]
+    public async Task GetAllEntitiesStartingWithEmptyPrefixTest()
+    {
+        CreateTestData();
+
+        List<TableEntity> entities = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", string.Empty);
+
+        Assert.AreEqual(3003, entities.Count);
+    }
 
     [TestMethod]
     public async Task TestEntitiesCount()
