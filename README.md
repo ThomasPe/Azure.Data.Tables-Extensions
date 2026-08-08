@@ -1,7 +1,7 @@
 # Azure.Data.Tables Extensions
 Extensions for the Azure.Data.Tables library to easier access &amp; manipulate data inside Azure Table Storage.
 
-With the CSV package you can easily import and export data from Azure Table Storage to CSV files.
+With the CSV package you can easily import and export data from Azure Table Storage to CSV files. With the JSON package you can do the same using newline-delimited JSON (NDJSON).
 
 ## NOTE
 If you use this code for backups, please test both export and import functionality and verify that the data is correct. I am not responsible for any data loss.
@@ -13,7 +13,9 @@ If you use this code for backups, please test both export and import functionali
 
 [![Nuget](https://img.shields.io/nuget/v/Medienstudio.Azure.Data.Tables.CSV?label=Medienstudio.Azure.Data.Tables.CSV%20on%20NuGet)](https://www.nuget.org/packages/Medienstudio.Azure.Data.Tables.CSV/)
 
-Releases are created from the GitHub Actions workflow on `main`, tagged with the next semver version, and then published to NuGet for both packages together.
+[![Nuget](https://img.shields.io/nuget/v/Medienstudio.Azure.Data.Tables.JSON?label=Medienstudio.Azure.Data.Tables.JSON%20on%20NuGet)](https://www.nuget.org/packages/Medienstudio.Azure.Data.Tables.JSON/)
+
+Releases are created from the GitHub Actions workflow on `main`, tagged with the next semver version, and then published to NuGet for all packages together.
 
 ## Querying
 
@@ -83,4 +85,24 @@ await _tableClient.ExportCSVAsync(writer);
 // Import all rows from a CSV file to the table
 using StreamReader reader = new("test.csv");
 await _tableClient.ImportCSVAsync(reader);
+```
+
+## JSON Export / Import
+
+The JSON package exports and imports Azure Table Storage data as newline-delimited JSON (NDJSON): one self-describing JSON object per row. Unlike CSV, no fixed column schema is required, since each line only needs to describe its own row's properties.
+
+```csharp
+using Azure.Data.Tables;
+using Medienstudio.Azure.Data.Tables.JSON;
+
+TableServiceClient tableServiceClient = new(connectionString);
+TableClient tableClient = tableServiceClient.GetTableClient("tablename");
+
+// Export all rows from the table to an NDJSON file
+using StreamWriter writer = File.CreateText("test.ndjson");
+await tableClient.ExportJSONAsync(writer);
+
+// Import all rows from an NDJSON file to the table
+using StreamReader reader = new("test.ndjson");
+await tableClient.ImportJSONAsync(reader);
 ```

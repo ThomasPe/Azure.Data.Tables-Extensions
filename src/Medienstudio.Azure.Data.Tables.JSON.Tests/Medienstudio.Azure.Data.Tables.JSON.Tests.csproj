@@ -1,0 +1,14 @@
+<Project Sdk="MSTest.Sdk">
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Medienstudio.Azure.Data.Tables.JSON\Medienstudio.Azure.Data.Tables.JSON.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Azure.Data.Tables" />
+		<PackageReference Include="Azure.Storage.Blobs" />
+	</ItemGroup>
+
+</Project>
