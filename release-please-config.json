@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "Medienstudio.Azure.Data.Tables.Extensions",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "src/Directory.Build.props",
+          "xpath": "/Project/PropertyGroup/Version"
+        },
+        {
+          "type": "xml",
+          "path": "src/Directory.Build.props",
+          "xpath": "/Project/PropertyGroup/AssemblyVersion"
+        },
+        {
+          "type": "xml",
+          "path": "src/Directory.Build.props",
+          "xpath": "/Project/PropertyGroup/FileVersion"
+        }
+      ]
+    }
+  }
+}

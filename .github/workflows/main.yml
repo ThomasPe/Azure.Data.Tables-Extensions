@@ -52,110 +52,39 @@ jobs:
       - name: Test CSV Extensions
         run: dotnet test src/${{ env.testCSVProj }}/${{ env.testCSVProj }}.csproj
 
-  release:
+  release-please:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ needs.release-please.outputs.tag_name }}
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.x
-      - name: Determine release version
-        id: version
-        shell: bash
-        run: |
-          latest_tag="$(git tag --sort=-version:refname | head -n 1)"
-
-          if [ -z "$latest_tag" ]; then
-            version="$(grep -oP '(?<=<Version>)[^<]+' src/Directory.Build.props | head -n 1)"
-            assembly_version="${version}.0"
-            notes="Initial release."
-            {
-              echo "skip=false"
-              echo "version=${version}"
-              echo "assembly_version=${assembly_version}"
-              echo "notes<<EOF"
-              echo "${notes}"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          commit_count="$(git rev-list --count "${latest_tag}..HEAD")"
-          if [ "$commit_count" -eq 0 ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          base_version="${latest_tag#v}"
-          commit_messages="$(git log --format=%B "${latest_tag}..HEAD")"
-
-          if echo "$commit_messages" | grep -Eqi 'BREAKING CHANGE|!:'; then
-            bump="major"
-          elif echo "$commit_messages" | grep -Eqi '^feat(\(.+\))?:'; then
-            bump="minor"
-          else
-            bump="patch"
-          fi
-
-          IFS='.' read -r major minor patch <<< "$base_version"
-          case "$bump" in
-            major)
-              major=$((major + 1))
-              minor=0
-              patch=0
-              ;;
-            minor)
-              minor=$((minor + 1))
-              patch=0
-              ;;
-            patch)
-              patch=$((patch + 1))
-              ;;
-          esac
-
-          version="${major}.${minor}.${patch}"
-          assembly_version="${version}.0"
-          notes="$(git log --format='- %s' "${latest_tag}..HEAD")"
-
-          {
-            echo "skip=false"
-            echo "version=${version}"
-            echo "assembly_version=${assembly_version}"
-            echo "notes<<EOF"
-            echo "${notes}"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Write release notes
-        if: steps.version.outputs.skip != 'true'
-        shell: bash
-        run: |
-          printf '%s\n' "${{ steps.version.outputs.notes }}" > release-notes.md
-
       - name: Build packages
-        if: steps.version.outputs.skip != 'true'
-        shell: bash
         run: |
-          dotnet pack src/Medienstudio.Azure.Data.Tables.Extensions/Medienstudio.Azure.Data.Tables.Extensions.csproj -c Release -o artifacts /p:Version=${{ steps.version.outputs.version }} /p:AssemblyVersion=${{ steps.version.outputs.assembly_version }} /p:FileVersion=${{ steps.version.outputs.assembly_version }}
-          dotnet pack src/Medienstudio.Azure.Data.Tables.CSV/Medienstudio.Azure.Data.Tables.CSV.csproj -c Release -o artifacts /p:Version=${{ steps.version.outputs.version }} /p:AssemblyVersion=${{ steps.version.outputs.assembly_version }} /p:FileVersion=${{ steps.version.outputs.assembly_version }}
-
+          dotnet pack src/Medienstudio.Azure.Data.Tables.Extensions/Medienstudio.Azure.Data.Tables.Extensions.csproj -c Release -o artifacts
+          dotnet pack src/Medienstudio.Azure.Data.Tables.CSV/Medienstudio.Azure.Data.Tables.CSV.csproj -c Release -o artifacts
       - name: Push to NuGet
-        if: steps.version.outputs.skip != 'true'
         run: dotnet nuget push "artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGETSECRET }} --skip-duplicate
-
-      - name: Create GitHub Release
-        if: steps.version.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "v${{ steps.version.outputs.version }}" \
-            --title "v${{ steps.version.outputs.version }}" \
-            --notes-file release-notes.md \
-            --target "${GITHUB_SHA}"
