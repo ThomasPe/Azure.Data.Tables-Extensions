@@ -64,7 +64,7 @@ public static class Extensions
                     actions.Add(new TableTransactionAction(tableTransactionActionType, partitionEntities[startIndex + index]));
                 }
                 int batchCount = actions.Count;
-                logger.LogDebug(LogEvents.BatchSubmitted, "Submitting table transaction batch for partition {PartitionKey} containing {BatchEntityCount} entities.", group.Key, batchCount);
+                logger.LogDebug(LogEvents.BatchSubmitted, "Submitting table transaction batch containing {BatchEntityCount} entities.", batchCount);
                 Response<IReadOnlyList<Response>> response = await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
                 responses.Add(response);
                 submittedBatchCount++;
@@ -224,7 +224,7 @@ public static class Extensions
     public static async Task DeleteAllEntitiesByPartitionKeyAsync(this TableClient tableClient, string partitionKey, ILogger? logger)
     {
         logger ??= NullLogger;
-        logger.LogInformation(LogEvents.DeletePartitionStarted, "Deleting all entities in partition {PartitionKey} from table {TableName}.", partitionKey, tableClient.Name);
+        logger.LogInformation(LogEvents.DeletePartitionStarted, "Deleting all entities in table {TableName}.", tableClient.Name);
 
         // Only the PartitionKey & RowKey fields are required for deletion
         AsyncPageable<TableEntity> entities = tableClient
@@ -235,11 +235,11 @@ public static class Extensions
         {
             // Since we don't know how many rows the table has and the results are ordered by PartitonKey+RowKey
             // we'll delete each page immediately and not cache the whole table in memory
-            logger.LogDebug(LogEvents.DeletePartitionPage, "Deleting page with {EntityCount} entities in partition {PartitionKey} from table {TableName}.", page.Values.Count, partitionKey, tableClient.Name);
+            logger.LogDebug(LogEvents.DeletePartitionPage, "Deleting page with {EntityCount} entities from table {TableName}.", page.Values.Count, tableClient.Name);
             await BatchManipulateEntities(tableClient, page.Values, TableTransactionActionType.Delete, logger).ConfigureAwait(false);
             totalDeleted += page.Values.Count;
         }
-        logger.LogInformation(LogEvents.DeletePartitionCompleted, "Completed deleting entities in partition {PartitionKey} from table {TableName}. Deleted entities: {DeletedEntityCount}.", partitionKey, tableClient.Name, totalDeleted);
+        logger.LogInformation(LogEvents.DeletePartitionCompleted, "Completed deleting entities from table {TableName}. Deleted entities: {DeletedEntityCount}.", tableClient.Name, totalDeleted);
     }
 
     /// <summary>
