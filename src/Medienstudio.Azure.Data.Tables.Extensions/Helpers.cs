@@ -50,13 +50,24 @@ public static class Helpers
     /// <returns></returns>
     public static string StartsWith(string column, string prefix)
     {
-        char lastChar = prefix[prefix.Length - 1];
+        ArgumentNullException.ThrowIfNull(column);
+        ArgumentNullException.ThrowIfNull(prefix);
+
+        if (prefix.Length == 0)
+        {
+            return $"{column} ge ''";
+        }
+
+        string escapedPrefix = prefix.Replace("'", "''");
+        char lastChar = prefix[^1];
         if (lastChar == char.MaxValue)
         {
-            return $"{column} ge '{prefix}'";
+            return $"{column} ge '{escapedPrefix}'";
         }
+
         char nextChar = (char)(lastChar + 1);
         string prefixNext = prefix[..^1] + nextChar;
-        return $"{column} ge '{prefix}' and {column} lt '{prefixNext}'";
+        string escapedPrefixNext = prefixNext.Replace("'", "''");
+        return $"{column} ge '{escapedPrefix}' and {column} lt '{escapedPrefixNext}'";
     }
 }
