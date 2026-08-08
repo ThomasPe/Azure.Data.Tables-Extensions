@@ -64,6 +64,7 @@ The CSV package aims support Azure Table Storage data import & export support fo
 
 ```csharp
 using Azure.Data.Tables;
+using Microsoft.Extensions.Logging;
 using Medienstudio.Azure.Data.Tables.CSV;
 
 TableServiceClient tableServiceClient = new(connectionString);
@@ -83,4 +84,28 @@ await _tableClient.ExportCSVAsync(writer);
 // Import all rows from a CSV file to the table
 using StreamReader reader = new("test.csv");
 await _tableClient.ImportCSVAsync(reader);
+
+// Optional: pass ILogger / ILogger<T> for structured operational logs
+ILogger logger = loggerFactory.CreateLogger("TablesCsv");
+await _tableClient.ExportCSVWithLoggingAsync(writer, logger);
+await _tableClient.ImportCSVAsync(reader, logger);
+```
+
+### ASP.NET Core DI logging example
+
+```csharp
+public class TableBackupService(TableClient tableClient, ILogger<TableBackupService> logger)
+{
+    public async Task BackupAsync(string path)
+    {
+        using StreamWriter writer = File.CreateText(path);
+        await tableClient.ExportCSVWithLoggingAsync(writer, logger);
+    }
+
+    public async Task RestoreAsync(string path)
+    {
+        using StreamReader reader = new(path);
+        await tableClient.ImportCSVAsync(reader, logger);
+    }
+}
 ```

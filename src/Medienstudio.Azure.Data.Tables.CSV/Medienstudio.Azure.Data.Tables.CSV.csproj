@@ -15,6 +15,7 @@
 	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" />
 		<PackageReference Include="CsvHelper" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 		<ProjectReference Include="..\Medienstudio.Azure.Data.Tables.Extensions\Medienstudio.Azure.Data.Tables.Extensions.csproj" />
 	</ItemGroup>
 </Project>
