@@ -1,10 +1,17 @@
-
 # Change Log
 All notable changes to this project will be documented in this file.
  
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
  
+## [2.0.1](https://github.com/ThomasPe/Azure.Data.Tables-Extensions/compare/Medienstudio.Azure.Data.Tables.Extensions-v2.0.0...Medienstudio.Azure.Data.Tables.Extensions-v2.0.1) (2026-08-08)
+
+
+### Bug Fixes
+
+* publish job was silently skipped on workflow_dispatch ([15cbca0](https://github.com/ThomasPe/Azure.Data.Tables-Extensions/commit/15cbca0e54d17f3d0f4219bf1caef5f36debe16f))
+* publish job was silently skipped on workflow_dispatch ([e582f1a](https://github.com/ThomasPe/Azure.Data.Tables-Extensions/commit/e582f1a8abc944d1c2aafe80f30b9c5d6ead974a))
+
 ## [2.0.0] - 2026-08-08
 
 ### Added
