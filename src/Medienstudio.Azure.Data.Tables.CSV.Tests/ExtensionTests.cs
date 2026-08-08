@@ -456,6 +456,21 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public async Task TestImportInvalidTimestampLogsWarning()
+    {
+        const string csvContent = "PartitionKey,RowKey,Timestamp\r\npartition,row-1,not-a-timestamp\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("row 2", StringComparison.Ordinal));
+        Assert.IsTrue(exception.Message.Contains("column 'Timestamp'", StringComparison.Ordinal));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Warning).Select(x => x.Message));
+        Assert.IsTrue(warningLog.Contains("invalid Timestamp value", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public async Task TestImportDoesNotEmitTableOperationLifecycleLogs()
     {
         const string csvContent = "PartitionKey,RowKey\r\npartition,row-1\r\n";

@@ -38,6 +38,7 @@ public static class Extensions
         public static readonly EventId CsvImportTypeCoercionFailed = new(2024, nameof(CsvImportTypeCoercionFailed));
         public static readonly EventId CsvImportCompleted = new(2025, nameof(CsvImportCompleted));
         public static readonly EventId CsvImportInvalidColumn = new(2026, nameof(CsvImportInvalidColumn));
+        public static readonly EventId CsvImportInvalidTimestamp = new(2027, nameof(CsvImportInvalidTimestamp));
         public static readonly EventId CsvStoredSchemaRetrieved = new(2030, nameof(CsvStoredSchemaRetrieved));
         public static readonly EventId CsvStoredSchemaStored = new(2031, nameof(CsvStoredSchemaStored));
     }
@@ -492,7 +493,15 @@ public static class Extensions
                             entity.RowKey = field;
                             break;
                         case "Timestamp":
-                            entity.Timestamp = DateTimeOffset.Parse(field);
+                            try
+                            {
+                                entity.Timestamp = DateTimeOffset.Parse(field, CultureInfo.InvariantCulture);
+                            }
+                            catch (FormatException ex)
+                            {
+                                logger.LogWarning(LogEvents.CsvImportInvalidTimestamp, ex, "CSV import failed for table {TableName}: invalid Timestamp value at row {RowIndex}.", tableClient.Name, rowIndex);
+                                throw new InvalidDataException($"CSV import failed at row {rowIndex}, column 'Timestamp'.", ex);
+                            }
                             break;
                     }
                 }
