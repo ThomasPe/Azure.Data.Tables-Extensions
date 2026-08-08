@@ -74,6 +74,9 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -86,5 +89,10 @@ jobs:
         run: |
           dotnet pack src/Medienstudio.Azure.Data.Tables.Extensions/Medienstudio.Azure.Data.Tables.Extensions.csproj -c Release -o artifacts
           dotnet pack src/Medienstudio.Azure.Data.Tables.CSV/Medienstudio.Azure.Data.Tables.CSV.csproj -c Release -o artifacts
+      - name: NuGet Login (trusted publishing)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ThomasP
       - name: Push to NuGet
-        run: dotnet nuget push "artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGETSECRET }} --skip-duplicate
+        run: dotnet nuget push "artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --skip-duplicate
