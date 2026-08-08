@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using Azure.Data.Tables;
 using Azure.Data.Tables.Models;
 using Microsoft.Extensions.Logging;
@@ -43,26 +43,30 @@ public static class Extensions
     /// <returns>List of Azure Responses for Transactions</returns>
     public static async Task<List<Response<IReadOnlyList<Response>>>> BatchManipulateEntities<T>(TableClient tableClient, IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, ILogger? logger) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
+        ArgumentNullException.ThrowIfNull(entities);
+
         logger ??= NullLogger;
-        IEnumerable<IGrouping<string, T>> groups = entities.GroupBy(x => x.PartitionKey);
+        List<T> entityList = [.. entities];
+        if (entityList.Count == 0)
+        {
+            return [];
+        }
+
         List<Response<IReadOnlyList<Response>>> responses = [];
         int partitionCount = 0;
         int submittedBatchCount = 0;
         int submittedEntityCount = 0;
 
         logger.LogInformation(LogEvents.BatchManipulateStarted, "Starting batched table transaction with action {ActionType}.", tableTransactionActionType);
-        foreach (IGrouping<string, T> group in groups)
+        foreach (IGrouping<string, T> group in entityList.GroupBy(x => x.PartitionKey, StringComparer.Ordinal))
         {
             partitionCount++;
             List<T> partitionEntities = [.. group];
             for (int startIndex = 0; startIndex < partitionEntities.Count; startIndex += 100)
             {
-                int batchEntityCount = Math.Min(100, partitionEntities.Count - startIndex);
-                List<TableTransactionAction> actions = new(batchEntityCount);
-                for (int index = 0; index < batchEntityCount; index++)
-                {
-                    actions.Add(new TableTransactionAction(tableTransactionActionType, partitionEntities[startIndex + index]));
-                }
+                List<T> batch = partitionEntities.GetRange(startIndex, Math.Min(100, partitionEntities.Count - startIndex));
+                List<TableTransactionAction> actions = [.. batch.Select(e => new TableTransactionAction(tableTransactionActionType, e))];
                 int batchCount = actions.Count;
                 logger.LogDebug(LogEvents.BatchSubmitted, "Submitting table transaction batch containing {BatchEntityCount} entities.", batchCount);
                 Response<IReadOnlyList<Response>> response = await tableClient.SubmitTransactionAsync(actions).ConfigureAwait(false);
@@ -84,6 +88,8 @@ public static class Extensions
     /// <returns>List of all entities with specified PartitionKey</returns>
     public static async Task<List<T>> GetAllEntitiesByPartitionKeyAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
+        ArgumentNullException.ThrowIfNull(partitionKey);
         return await tableClient.QueryAsync<T>(x => x.PartitionKey == partitionKey, maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
     }
 
@@ -97,6 +103,9 @@ public static class Extensions
     /// <returns></returns>
     public static async Task<List<T>> GetAllEntitiesStartingWithAsync<T>(this TableClient tableClient, string column, string prefix) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
+        ArgumentNullException.ThrowIfNull(column);
+        ArgumentNullException.ThrowIfNull(prefix);
         return await tableClient.QueryAsync<T>(Helpers.StartsWith(column, prefix), maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
     }
 
@@ -110,6 +119,8 @@ public static class Extensions
     /// <returns>List of all entities in the table with specified RowKey</returns>
     public static async Task<List<T>> GetAllEntitiesByRowKeyAsync<T>(this TableClient tableClient, string rowKey) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
+        ArgumentNullException.ThrowIfNull(rowKey);
         return await tableClient.QueryAsync<T>(x => x.RowKey == rowKey, maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
     }
 
@@ -121,6 +132,7 @@ public static class Extensions
     /// <returns></returns>
     public static async Task<List<T>> GetAllEntitiesAsync<T>(this TableClient tableClient) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
         return await tableClient.QueryAsync<T>(maxPerPage: 1000).ToListAsync().ConfigureAwait(false);
     }
 
@@ -132,6 +144,7 @@ public static class Extensions
     /// <returns>First entity in table</returns>
     public static async Task<T?> GetFirstEntityAsync<T>(this TableClient tableClient) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
         return await tableClient.QueryAsync<T>(maxPerPage: 1).FirstOrDefaultAsync();
     }
 
@@ -144,6 +157,8 @@ public static class Extensions
     /// <returns>First entity in partition</returns>
     public static async Task<T?> GetFirstEntityAsync<T>(this TableClient tableClient, string partitionKey) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
+        ArgumentNullException.ThrowIfNull(partitionKey);
         return await tableClient.QueryAsync<T>(filter: x => x.PartitionKey == partitionKey, maxPerPage: 1).FirstOrDefaultAsync();
     }
 
@@ -165,6 +180,8 @@ public static class Extensions
     /// </summary>
     public static async Task AddEntitiesAsync<T>(this TableClient tableClient, IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, ILogger? logger) where T : class, ITableEntity, new()
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
+        ArgumentNullException.ThrowIfNull(entities);
         logger ??= NullLogger;
         List<T> entityList = [.. entities];
         int entityCount = entityList.Count;
@@ -188,6 +205,7 @@ public static class Extensions
     /// </summary>
     public static async Task DeleteAllEntitiesAsync(this TableClient tableClient, ILogger? logger)
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
         logger ??= NullLogger;
         logger.LogInformation(LogEvents.DeleteAllEntitiesStarted, "Deleting all entities from table {TableName}.", tableClient.Name);
 
@@ -223,6 +241,8 @@ public static class Extensions
     /// </summary>
     public static async Task DeleteAllEntitiesByPartitionKeyAsync(this TableClient tableClient, string partitionKey, ILogger? logger)
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
+        ArgumentNullException.ThrowIfNull(partitionKey);
         logger ??= NullLogger;
         logger.LogInformation(LogEvents.DeletePartitionStarted, "Deleting all entities in table {TableName}.", tableClient.Name);
 
@@ -250,6 +270,9 @@ public static class Extensions
     /// <returns>Azure Response, null if table already existed</returns>
     public static async Task<Response<TableItem>?> CreateTableIfNotExistsSafeAsync(this TableServiceClient tableServiceClient, string table)
     {
+        ArgumentNullException.ThrowIfNull(tableServiceClient);
+        ArgumentNullException.ThrowIfNull(table);
+
         List<TableItem> tables = await tableServiceClient.QueryAsync(x => x.Name == table).ToListAsync().ConfigureAwait(false);
         if (tables.Count == 0)
         {
@@ -266,6 +289,9 @@ public static class Extensions
     /// <returns>Azure Response, null if table already existed</returns>
     public static Response<TableItem>? CreateTableIfNotExistsSafe(this TableServiceClient tableServiceClient, string table)
     {
+        ArgumentNullException.ThrowIfNull(tableServiceClient);
+        ArgumentNullException.ThrowIfNull(table);
+
         List<TableItem> tables = tableServiceClient.Query(x => x.Name == table).ToList();
         if (tables.Count == 0)
         {
@@ -282,6 +308,7 @@ public static class Extensions
     /// <returns>The total number of rows in the table</returns>
     public static async Task<int> CountEntitiesAsync(this TableClient tableClient, string? partitionKey = null)
     {
+        ArgumentNullException.ThrowIfNull(tableClient);
         string? filter = partitionKey is null ? null : TableClient.CreateQueryFilter($"PartitionKey eq {partitionKey}");
         IAsyncEnumerable<Page<TableEntity>> pages = tableClient
             .QueryAsync<TableEntity>(filter: filter, select: ["PartitionKey"], maxPerPage: 1000)
