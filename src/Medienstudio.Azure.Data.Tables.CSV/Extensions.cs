@@ -523,6 +523,13 @@ public static class Extensions
 
                         try
                         {
+                            // TableEntity.Add does not throw on a duplicate key (unlike Dictionary<TKey,TValue>.Add) —
+                            // it silently overwrites, so a duplicate CSV column header would otherwise pass silently.
+                            if (entity.ContainsKey(label))
+                            {
+                                throw new ArgumentException($"An item with the same key has already been added. Key: {label}", nameof(label));
+                            }
+
                             entity.Add(label, value);
                         }
                         catch (ArgumentException ex)
