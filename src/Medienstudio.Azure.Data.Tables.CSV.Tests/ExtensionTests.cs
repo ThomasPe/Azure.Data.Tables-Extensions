@@ -2,6 +2,7 @@ using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using CsvHelper;
+using Microsoft.Extensions.Logging;
 using Medienstudio.Azure.Data.Tables.Extensions;
 using System.Globalization;
 using System.Text;
@@ -396,6 +397,93 @@ public class ExtensionTests
         Assert.IsFalse(entity.ContainsKey("emptyInt32"));
     }
 
+    [TestMethod]
+    public async Task TestExportWithLoggingUsesDedicatedMethod()
+    {
+        using StringWriter writer = new(CultureInfo.InvariantCulture);
+        TestLogger logger = new();
+
+        await _tableClient.ExportCSVWithLoggingAsync(writer, logger);
+
+        string informationLogs = string.Join(Environment.NewLine, logger.Entries.Where(entry => entry.Level == LogLevel.Information).Select(entry => entry.Message));
+        Assert.IsTrue(informationLogs.Contains("Starting CSV export", StringComparison.Ordinal));
+        Assert.IsTrue(informationLogs.Contains("Completed CSV export", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task TestImportTypeCoercionFailureLogsActionableContext()
+    {
+        const string csvContent = "PartitionKey,RowKey,value,value@type\r\npartition,row-1,not-an-int,Int32\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("row 2", StringComparison.Ordinal));
+        Assert.IsTrue(exception.Message.Contains("column 'value'", StringComparison.Ordinal));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Warning).Select(x => x.Message));
+        Assert.IsTrue(warningLog.Contains("type coercion error", StringComparison.Ordinal));
+        Assert.IsTrue(warningLog.Contains("declared type Int32", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task TestImportDuplicateColumnLogsColumnError()
+    {
+        const string csvContent = "PartitionKey,RowKey,value,value@type,value,value@type\r\npartition,row-1,first,String,second,String\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("column 'value'", StringComparison.Ordinal));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(entry => entry.Level == LogLevel.Warning).Select(entry => entry.Message));
+        Assert.IsTrue(warningLog.Contains("invalid column value", StringComparison.Ordinal));
+        Assert.IsFalse(warningLog.Contains("type coercion error", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task TestImportMissingHeaderLogsWarning()
+    {
+        const string csvContent = "PartitionKey,RowKey\r\npartition,row-1,unexpected-extra-field\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("header", StringComparison.OrdinalIgnoreCase));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Warning).Select(x => x.Message));
+        Assert.IsTrue(warningLog.Contains("missing header", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public async Task TestImportInvalidTimestampLogsWarning()
+    {
+        const string csvContent = "PartitionKey,RowKey,Timestamp\r\npartition,row-1,not-a-timestamp\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        InvalidDataException exception = await Assert.ThrowsExceptionAsync<InvalidDataException>(() => _tableClient.ImportCSVAsync(reader, logger));
+        Assert.IsTrue(exception.Message.Contains("row 2", StringComparison.Ordinal));
+        Assert.IsTrue(exception.Message.Contains("column 'Timestamp'", StringComparison.Ordinal));
+
+        string warningLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Warning).Select(x => x.Message));
+        Assert.IsTrue(warningLog.Contains("invalid Timestamp value", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task TestImportDoesNotEmitTableOperationLifecycleLogs()
+    {
+        const string csvContent = "PartitionKey,RowKey\r\npartition,row-1\r\n";
+        using StringReader reader = new(csvContent);
+        TestLogger logger = new();
+
+        await _tableClient.ImportCSVAsync(reader, logger);
+
+        string informationLogs = string.Join(Environment.NewLine, logger.Entries.Where(entry => entry.Level == LogLevel.Information).Select(entry => entry.Message));
+        Assert.IsFalse(informationLogs.Contains("Adding entities", StringComparison.Ordinal));
+        Assert.IsFalse(informationLogs.Contains("Starting batched table transaction", StringComparison.Ordinal));
+    }
+
     private static string RandomTableName()
     {
         return "t" + Guid.NewGuid().ToString("N");
@@ -516,6 +604,28 @@ public class ExtensionTests
         {
             Action? mutation = Interlocked.Exchange(ref _mutation, null);
             mutation?.Invoke();
+        }
+    }
+
+    private sealed class TestLogger : ILogger
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        private static readonly IDisposable Scope = new NoopDisposable();
+
+        IDisposable ILogger.BeginScope<TState>(TState state) => Scope;
+
+        bool ILogger.IsEnabled(LogLevel logLevel) => true;
+
+        void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
+    }
+
+    private sealed class NoopDisposable : IDisposable
+    {
+        public void Dispose()
+        {
         }
     }
 

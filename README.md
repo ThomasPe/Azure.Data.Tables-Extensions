@@ -15,7 +15,7 @@ If you use this code for backups, please test both export and import functionali
 
 [![Nuget](https://img.shields.io/nuget/v/Medienstudio.Azure.Data.Tables.JSON?label=Medienstudio.Azure.Data.Tables.JSON%20on%20NuGet)](https://www.nuget.org/packages/Medienstudio.Azure.Data.Tables.JSON/)
 
-Releases are created from the GitHub Actions workflow on `main`, tagged with the next semver version, and then published to NuGet for all packages together.
+Releases are managed by [release-please](https://github.com/googleapis/release-please): pushes to `main` update a release pull request with the next semver version (derived from [Conventional Commits](https://www.conventionalcommits.org/)) and changelog; merging that PR tags the release and publishes all packages to NuGet.
 
 ## Querying
 
@@ -66,6 +66,7 @@ The CSV package aims support Azure Table Storage data import & export support fo
 
 ```csharp
 using Azure.Data.Tables;
+using Microsoft.Extensions.Logging;
 using Medienstudio.Azure.Data.Tables.CSV;
 
 TableServiceClient tableServiceClient = new(connectionString);
@@ -85,6 +86,30 @@ await _tableClient.ExportCSVAsync(writer);
 // Import all rows from a CSV file to the table
 using StreamReader reader = new("test.csv");
 await _tableClient.ImportCSVAsync(reader);
+
+// Optional: pass ILogger / ILogger<T> for structured operational logs
+ILogger logger = loggerFactory.CreateLogger("TablesCsv");
+await _tableClient.ExportCSVWithLoggingAsync(writer, logger);
+await _tableClient.ImportCSVAsync(reader, logger);
+```
+
+### ASP.NET Core DI logging example
+
+```csharp
+public class TableBackupService(TableClient tableClient, ILogger<TableBackupService> logger)
+{
+    public async Task BackupAsync(string path)
+    {
+        using StreamWriter writer = File.CreateText(path);
+        await tableClient.ExportCSVWithLoggingAsync(writer, logger);
+    }
+
+    public async Task RestoreAsync(string path)
+    {
+        using StreamReader reader = new(path);
+        await tableClient.ImportCSVAsync(reader, logger);
+    }
+}
 ```
 
 ## JSON Export / Import

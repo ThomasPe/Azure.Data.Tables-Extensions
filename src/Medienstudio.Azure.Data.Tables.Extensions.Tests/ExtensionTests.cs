@@ -1,5 +1,6 @@
 using Azure.Data.Tables;
 using Azure.Data.Tables.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Medienstudio.Azure.Data.Tables.Extensions.Tests;
 
@@ -121,6 +122,27 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public async Task AddAllEntitiesAsyncWithLoggerEmitsLifecycleLogs()
+    {
+        List<TableEntity> entities = [];
+        for (int i = 0; i < 5; i++)
+        {
+            entities.Add(new TableEntity
+            {
+                PartitionKey = "partition",
+                RowKey = Guid.NewGuid().ToString()
+            });
+        }
+
+        TestLogger logger = new();
+        await _tableClient.AddEntitiesAsync(entities, TableTransactionActionType.Add, logger);
+
+        string infoLog = string.Join(Environment.NewLine, logger.Entries.Where(x => x.Level == LogLevel.Information).Select(x => x.Message));
+        Assert.IsTrue(infoLog.Contains("Adding entities", StringComparison.Ordinal));
+        Assert.IsTrue(infoLog.Contains("Completed adding entities", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public async Task DeleteAllEntitiesAsyncTest()
     {
         CreateTestData();
@@ -182,6 +204,27 @@ public class ExtensionTests
         Assert.AreEqual(1, entities2.Count);
     }
 
+    [TestMethod]
+    public async Task GetAllEntitiesStartingWithEmptyPrefixTest()
+    {
+        CreateTestData();
+
+        List<TableEntity> entities = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", string.Empty);
+
+        Assert.AreEqual(3003, entities.Count);
+    }
+
+    [TestMethod]
+    public async Task GetAllEntitiesStartingWithApostropheTest()
+    {
+        _tableClient.UpsertEntity(new TableEntity("quote'", "first"));
+        _tableClient.UpsertEntity(new TableEntity("quote'prefix", "second"));
+        _tableClient.UpsertEntity(new TableEntity("quotez", "third"));
+
+        List<TableEntity> entities = await _tableClient.GetAllEntitiesStartingWithAsync<TableEntity>("PartitionKey", "quote'");
+
+        Assert.AreEqual(2, entities.Count);
+    }
 
     [TestMethod]
     public async Task TestEntitiesCount()
@@ -192,6 +235,10 @@ public class ExtensionTests
 
         int count2 = await _tableClient.CountEntitiesAsync(partitionKey: "123");
         Assert.AreEqual(3000, count2);
+
+        _tableClient.UpsertEntity(new TableEntity("quote'", "count"));
+        int count3 = await _tableClient.CountEntitiesAsync(partitionKey: "quote'");
+        Assert.AreEqual(1, count3);
     }
 
     [TestCleanup]
@@ -200,5 +247,27 @@ public class ExtensionTests
         _tableClient?.Delete();
         _tableServiceClient.DeleteTable(createTableName);
         _tableServiceClient.DeleteTable(createTableNameAsync);
+    }
+
+    private sealed class TestLogger : ILogger
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        private static readonly IDisposable Scope = new NoopDisposable();
+
+        IDisposable ILogger.BeginScope<TState>(TState state) => Scope;
+
+        bool ILogger.IsEnabled(LogLevel logLevel) => true;
+
+        void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
+    }
+
+    private sealed class NoopDisposable : IDisposable
+    {
+        public void Dispose()
+        {
+        }
     }
 }
