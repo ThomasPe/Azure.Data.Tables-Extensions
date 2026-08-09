@@ -55,7 +55,7 @@ public class ExtensionTests
         Assert.AreEqual("DateTime", dateTimeOffset["datetimeoffset@type"]!.GetValue<string>());
 
         JsonObject doubleRow = ParseLine(lines, "05-double");
-        Assert.AreEqual(1.1, doubleRow["double"]!.GetValue<double>());
+        Assert.AreEqual("1.1", doubleRow["double"]!.ToJsonString());
         Assert.AreEqual("Double", doubleRow["double@type"]!.GetValue<string>());
 
         JsonObject guid = ParseLine(lines, "06-guid");
