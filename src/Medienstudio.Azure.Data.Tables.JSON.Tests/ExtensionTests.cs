@@ -1,6 +1,7 @@
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Medienstudio.Azure.Data.Tables.Extensions;
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
