@@ -27,6 +27,8 @@ public static class Extensions
         {
             await WriteJSONLineAsync(writer, row);
         }
+
+        await writer.FlushAsync();
     }
 
     /// <summary>
@@ -48,6 +50,8 @@ public static class Extensions
         {
             await WriteJSONLineAsync(writer, row);
         }
+
+        await writer.FlushAsync();
     }
 
     private static async Task WriteJSONLineAsync(TextWriter writer, TableEntity row)

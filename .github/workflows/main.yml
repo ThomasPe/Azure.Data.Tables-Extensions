@@ -55,9 +55,6 @@ jobs:
         run: dotnet test src/${{ env.testCSVProj }}/${{ env.testCSVProj }}.csproj
       - name: Test JSON Extensions
         run: dotnet test src/${{ env.testJSONProj }}/${{ env.testJSONProj }}.csproj
-      - name: Show JSON test failure log
-        if: failure()
-        run: cat src/${{ env.testJSONProj }}/bin/Debug/net10.0/TestResults/*.log || true
 
   release-please:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
