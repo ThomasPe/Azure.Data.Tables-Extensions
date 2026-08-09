@@ -21,6 +21,8 @@ env:
   testProj: 'Medienstudio.Azure.Data.Tables.Extensions.Tests'
   mainCSVProj: 'Medienstudio.Azure.Data.Tables.CSV'
   testCSVProj: 'Medienstudio.Azure.Data.Tables.CSV.Tests'
+  mainJSONProj: 'Medienstudio.Azure.Data.Tables.JSON'
+  testJSONProj: 'Medienstudio.Azure.Data.Tables.JSON.Tests'
   buildPlatform: Any CPU
   buildConfiguration: Release
   
@@ -51,6 +53,8 @@ jobs:
         run: dotnet test src/${{ env.testProj }}/${{ env.testProj }}.csproj
       - name: Test CSV Extensions
         run: dotnet test src/${{ env.testCSVProj }}/${{ env.testCSVProj }}.csproj
+      - name: Test JSON Extensions
+        run: dotnet test src/${{ env.testJSONProj }}/${{ env.testJSONProj }}.csproj
 
   release-please:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -89,6 +93,7 @@ jobs:
         run: |
           dotnet pack src/Medienstudio.Azure.Data.Tables.Extensions/Medienstudio.Azure.Data.Tables.Extensions.csproj -c Release -o artifacts
           dotnet pack src/Medienstudio.Azure.Data.Tables.CSV/Medienstudio.Azure.Data.Tables.CSV.csproj -c Release -o artifacts
+          dotnet pack src/Medienstudio.Azure.Data.Tables.JSON/Medienstudio.Azure.Data.Tables.JSON.csproj -c Release -o artifacts
       - name: NuGet Login (trusted publishing)
         id: nuget-login
         uses: NuGet/login@v1

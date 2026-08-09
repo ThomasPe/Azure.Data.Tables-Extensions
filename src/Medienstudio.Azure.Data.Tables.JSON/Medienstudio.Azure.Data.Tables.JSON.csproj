@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Description>An Azure.Data.Tables extension package for exporting Azure Tables as JSON for backup purposes.</Description>
+		<PackageTags>azure; azure table storage; Azure.Data.Tables; JSON; Backup; Export;</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Azure.Data.Tables" />
+		<ProjectReference Include="..\Medienstudio.Azure.Data.Tables.Extensions\Medienstudio.Azure.Data.Tables.Extensions.csproj" />
+	</ItemGroup>
+</Project>
