@@ -15,7 +15,7 @@ If you use this code for backups, please test both export and import functionali
 
 ## JSON Export / Import
 
-Each row is written as a single self-describing JSON object, one per line (NDJSON). Unlike CSV, a fixed column list is not required up front: every row simply serializes the properties it has, so tables with heterogeneous entities export without a schema-discovery pass. Non-string property values that JSON cannot represent unambiguously (dates, GUIDs, binary, and numeric types) are written as strings alongside a sibling `PropertyName@type` field, mirroring the CSV package's convention.
+Each row is written as a single self-describing JSON object, one per line (NDJSON). Unlike CSV, a fixed column list is not required up front: every row simply serializes the properties it has, so tables with heterogeneous entities export without a schema-discovery pass. `Int32`, `Int64`, and `Double` properties are written as native JSON numbers, and `Boolean` as a native JSON boolean. Property types JSON cannot represent unambiguously (`DateTime`, `Guid`, `Binary`) are written as strings. Every property is written alongside a sibling `PropertyName@type` field carrying its .NET type name, mirroring the CSV package's convention, so the importer can restore the exact original type without guessing from the JSON value's shape.
 
 ```csharp
 using Azure.Data.Tables;

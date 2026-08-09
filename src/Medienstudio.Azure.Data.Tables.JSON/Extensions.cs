@@ -1,4 +1,5 @@
 using Azure.Data.Tables;
+using Medienstudio.Azure.Data.Tables.Extensions;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -72,8 +73,13 @@ public static class Extensions
         await writer.WriteAsync('\n');
     }
 
-    private static JsonValue? ToJsonValue(object value)
+    private static JsonValue? ToJsonValue(object? value)
     {
+        if (value is null)
+        {
+            return null;
+        }
+
         return value switch
         {
             byte[] bytes => JsonValue.Create(Convert.ToBase64String(bytes)),
